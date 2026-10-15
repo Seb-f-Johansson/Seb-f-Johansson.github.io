@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Exposure Explorer — Sebastian Frånlund Johansson</title>
+<meta name="description" content="Interactive scatter of AI exposure (DAIOE, extended to 2024) against task complementarity for 422 ISCO-08 occupations.">
+<meta property="og:title" content="AI Exposure Explorer — Sebastian Frånlund Johansson">
+<meta property="og:description" content="Interactive scatter of AI exposure (DAIOE, extended to 2024) against task complementarity for 422 ISCO-08 occupations.">
+<meta property="og:image" content="assets/photo.webp">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/style.css">
+<script>
+// apply saved theme before first paint to avoid a flash
+try { var t = localStorage.getItem('theme'); if (t) document.documentElement.setAttribute('data-theme', t); } catch (e) {}
+</script>
+
+</head>
+<body data-github="Seb-f-Johansson">
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="index.html">Sebastian Frånlund Johansson</a>
+    <nav class="main" id="nav" aria-label="Main">
+      <a href="index.html">Home</a>
+      <a href="research.html">Research</a>
+      <a href="exposure.html" aria-current="page">AI Exposure</a>
+      <a href="teaching.html">Teaching</a>
+      <a href="cv.html">CV</a>
+    </nav>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="theme-btn" id="theme" type="button" aria-label="Toggle dark mode" title="Toggle dark mode">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path class="sun" d="M12 3v2M12 19v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M3 12h2M19 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/><circle class="sun" cx="12" cy="12" r="4"/><path class="moon" d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" style="display:none"/></svg>
+      </button>
+      <button class="theme-btn nav-toggle" id="navToggle" type="button" aria-label="Menu" aria-expanded="false" aria-controls="nav">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap">
+
+<h1>AI exposure explorer</h1>
+<p>Each point is one of 422 four-digit ISCO-08 occupations. The horizontal axis is the Dynamic AI Occupational Exposure index (DAIOE, all applications, extended to 2024); the vertical axis is the task-complementarity index, which measures how much the occupation's tasks sit in contexts where human input remains valuable. Dashed lines mark the medians (35.0 and 0.32). The complementarity-adjusted index C-DAIOE used in <a href="research.html#ai-reallocation">my job market paper</a> discounts exposure by complementarity, so the occupations where AI is most likely to substitute for labor are those in the lower-right quadrant.</p>
+
+<div class="viz" id="viz">
+  <div class="controls">
+    <input type="search" id="q" placeholder="Search occupation or ISCO code (e.g. 2631, economists)" aria-label="Search occupations" autocomplete="off">
+    <select id="major" aria-label="Major group">
+      <option value="">All major groups</option>
+      <option value="1">1 Managers</option>
+      <option value="2">2 Professionals</option>
+      <option value="3">3 Technicians and associate professionals</option>
+      <option value="4">4 Clerical support workers</option>
+      <option value="5">5 Service and sales workers</option>
+      <option value="6">6 Skilled agricultural, forestry and fishery workers</option>
+      <option value="7">7 Craft and related trades workers</option>
+      <option value="8">8 Plant and machine operators and assemblers</option>
+      <option value="9">9 Elementary occupations</option>
+    </select>
+    <select id="xvar" aria-label="Horizontal axis">
+      <option value="daioe">x: DAIOE (exposure)</option>
+      <option value="cdaioe">x: C-DAIOE (complementarity-adjusted)</option>
+    </select>
+    <button class="btn" id="toggleTable" type="button" aria-pressed="false">Table view</button>
+  </div>
+  <div id="chart" style="position:relative"></div>
+  <div class="legend" id="legend">
+    <span><i class="dot" style="background:var(--q1)"></i>High exposure, low complementarity</span>
+    <span><i class="dot" style="background:var(--q2)"></i>High exposure, high complementarity</span>
+    <span><i class="dot" style="background:var(--q3)"></i>Low exposure, high complementarity</span>
+    <span><i class="dot" style="background:var(--q4)"></i>Low exposure, low complementarity</span>
+  </div>
+  <div class="table-wrap" id="tableWrap" hidden>
+    <table class="data" id="table">
+      <thead><tr>
+        <th data-k="isco">ISCO</th><th data-k="title">Occupation</th>
+        <th class="num" data-k="daioe">DAIOE</th><th class="num" data-k="cdaioe">C-DAIOE</th><th class="num" data-k="comp">Complementarity</th>
+      </tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+  <p class="small muted" id="count" style="margin:10px 0 0"></p>
+</div>
+
+<h2>About the data</h2>
+<p class="small muted">DAIOE is the Dynamic AI Occupational Exposure index of Engberg, Görg, Lodefalk et al., which combines AI benchmark progress across applications with the abilities required in each occupation. The published series ends in 2023; the 2024 values extend it using benchmark progress from the Papers with Code archive, as described in the paper's appendix. The complementarity index follows the task-context approach of Pizzinelli et al. (2023). Scores are shown for the 422 occupations with Norwegian employment in the paper's sample; armed forces occupations are excluded. The underlying file is <a href="data/exposure_2024.json">data/exposure_2024.json</a>.</p>
+
+</main>
+<footer>
+  <div class="wrap">
+    <div>&copy; 2026 Sebastian Frånlund Johansson &middot; BI Norwegian Business School, Nydalsveien 37, N-0484 Oslo</div>
+    <div><a href="mailto:Sebastian.s.johansson@bi.no">Sebastian.s.johansson@bi.no</a> &middot; <a href="https://github.com/Seb-f-Johansson">GitHub</a></div>
+  </div>
+</footer>
+<script src="assets/site.js"></script>
+<script src="assets/exposure.js"></script>
+</body>
+</html>
