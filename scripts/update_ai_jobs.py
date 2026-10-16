@@ -110,16 +110,17 @@ def fetch_detail() -> tuple[dict, list[str], str, dict]:
 
 
 QUAD_YEAR = 2024            # the paper classifies occupations with 2024 DAIOE
-MEASURES = ["quad", "comp", "daioe"]
-NGROUPS = {"quad": 4, "comp": 2, "daioe": 2}
+MEASURES = ["quad", "comp", "cdaioe"]
+NGROUPS = {"quad": 4, "comp": 2, "cdaioe": 2}
 
 
-def group_of(daioe, comp, md, mc):
-    """Paper's classification. comp: 1 low, 2 high; daioe: 1 low, 2 high; quad: 1-4 as in the paper."""
-    if daioe is None or comp is None:
-        return {"quad": None, "comp": None, "daioe": None}
+def group_of(daioe, comp, cdaioe, md, mc, mcd):
+    """quad: the paper's quadrants (2024 DAIOE x complementarity, 1-4 as in the paper);
+    comp: 1 low, 2 high complementarity; cdaioe: 1 low, 2 high C-DAIOE (median split, 2024)."""
+    if daioe is None or comp is None or cdaioe is None:
+        return {"quad": None, "comp": None, "cdaioe": None}
     hx, hc = daioe >= md, comp >= mc
-    return {"quad": 2 if hx and hc else 1 if hx else 3 if hc else 4, "comp": 2 if hc else 1, "daioe": 2 if hx else 1}
+    return {"quad": 2 if hx and hc else 1 if hx else 3 if hc else 4, "comp": 2 if hc else 1, "cdaioe": 2 if cdaioe >= mcd else 1}
 
 
 def wquantile_groups(items: list[tuple[str, float, float]], n: int = 5) -> dict[str, int]:
@@ -186,11 +187,12 @@ def main() -> None:
         return s[m] if len(s) % 2 else (s[m - 1] + s[m]) / 2
     md = med([occ[c]["daioe"][qy] for c in occ if occ[c]["daioe"][qy] is not None])
     mc = med([occ[c]["comp"] for c in occ])
+    mcd = med([occ[c]["cdaioe"][qy] for c in occ if occ[c]["cdaioe"][qy] is not None])
     def val(c, m):
-        return occ[c]["comp"] if m == "comp" else occ[c]["daioe"][qy]
+        return occ[c]["comp"] if m == "comp" else occ[c][m][qy]
     groups = {m: {} for m in MEASURES}
     for c in matched:
-        g = group_of(occ[c]["daioe"][qy], occ[c]["comp"], md, mc)
+        g = group_of(occ[c]["daioe"][qy], occ[c]["comp"], occ[c]["cdaioe"][qy], md, mc, mcd)
         for m in MEASURES:
             groups[m][c] = g[m]
     quad = groups["quad"]
@@ -264,10 +266,10 @@ def main() -> None:
         cs = [c for c in two[t] if val(c, m) is not None]
         w = sum(weight[c] for c in cs)
         return sum(weight[c] * val(c, m) for c in cs) / w if w else None
-    s2 = {m: {t: score2(t, m) for t in d_occ} for m in ["comp", "daioe"]}
+    s2 = {m: {t: score2(t, m) for t in d_occ} for m in ["comp", "daioe", "cdaioe"]}
     g2 = {m: {} for m in MEASURES}
     for t in d_occ:
-        g = group_of(s2["daioe"][t], s2["comp"][t], md, mc)
+        g = group_of(s2["daioe"][t], s2["comp"][t], s2["cdaioe"][t], md, mc, mcd)
         for m in MEASURES:
             g2[m][t] = g[m]
     def dseries(codes, age):
@@ -290,7 +292,8 @@ def main() -> None:
         detail["occ"][t] = {"t": d_labels.get(t, t).replace("\u00bf", "\u2019"),
                             "comp": None if s2["comp"][t] is None else round(s2["comp"][t], 4),
                             "daioe": None if s2["daioe"][t] is None else round(s2["daioe"][t], 2),
-                            "g": g2["comp"].get(t), "gd": g2["daioe"].get(t), "q": g2["quad"].get(t),
+                            "cdaioe": None if s2["cdaioe"][t] is None else round(s2["cdaioe"][t], 2),
+                            "g": g2["comp"].get(t), "gd": g2["cdaioe"].get(t), "q": g2["quad"].get(t),
                             "w": round(dw[t]),
                             "w25": round(sum(dvals[("-24", t, q)] for q in dq if q.startswith(WEIGHT_YEAR)) / 4),
                             "change": {a: dpack(dseries([t], a))["change"] for a in AGES_DETAIL}}
@@ -342,7 +345,7 @@ def main() -> None:
     for c in matched:
         occ_out[c] = {
             "t": (occ[c]["title"] or labels.get(c, "")).replace("\u00bf", "\u2019"),
-            "g": groups["comp"][c], "gd": groups["daioe"][c], "q": quad[c],
+            "g": groups["comp"][c], "gd": groups["cdaioe"][c], "q": quad[c],
             "e": [emp(c, "999D", q) for q in quarters],
             "y": [emp(c, "0-39", q) for q in quarters],
             "w": [values.get(("MedianMndLonn", "999D", c, q)) for q in quarters],
@@ -358,8 +361,8 @@ def main() -> None:
         "weight_year": WEIGHT_YEAR,
         "coverage": round(sum(weight.values()) / total_w, 4) if total_w else None,
         "n_matched": len(matched),
-        "medians": {"daioe": round(md, 2), "comp": round(mc, 4), "daioe_year": QUAD_YEAR},
-        "groups_def": "paper: unweighted occupation medians of 2024 DAIOE and of the task-complementarity index",
+        "medians": {"daioe": round(md, 2), "comp": round(mc, 4), "cdaioe": round(mcd, 2), "daioe_year": QUAD_YEAR},
+        "groups_def": "quadrants as in the paper (unweighted occupation medians of 2024 DAIOE and of the task-complementarity index); exposure-only split at the median of 2024 C-DAIOE",
         "ages": [{"code": a, "label": AGE_LABEL[a]} for a in AGES],
         "all": allc,
         "groups": out_groups,

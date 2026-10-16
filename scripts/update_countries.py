@@ -11,9 +11,9 @@ Sources (all open, standard library only):
           Census occupation code and age. Monthly cells are cached in data/us_cps_months.json,
           so a run only downloads months it has not seen.
 
-Groups: the paper's definitions, with the paper's medians (unweighted across Norwegian
-occupations: 2024 DAIOE 35.04, task complementarity 0.323), so a given score lands in the same
-group in every country. EU two-digit occupations take the group of the same two-digit occupation
+Groups: the paper's quadrants, with the paper's medians (unweighted across occupations: 2024
+DAIOE 35.04, task complementarity 0.323), and an exposure-only split at the median of 2024
+C-DAIOE, so a given score lands in the same group in every country. EU two-digit occupations take the group of the same two-digit occupation
 on the Norwegian page (table 14160 panel).
 """
 from __future__ import annotations
@@ -40,8 +40,8 @@ MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", 
 AGES = ["all", "-24", "25-29", "30-44", "45-54", "55-64", "65+"]
 AGE_LABEL = {"all": "All ages", "-24": "Under 25", "25-29": "25-29", "30-44": "30-44", "45-54": "45-54",
              "55-64": "55-64", "65+": "65 and over"}
-MEASURES = ["quad", "comp", "daioe"]
-NGROUPS = {"quad": 4, "comp": 2, "daioe": 2}
+MEASURES = ["quad", "comp", "cdaioe"]
+NGROUPS = {"quad": 4, "comp": 2, "cdaioe": 2}
 
 
 def get(url, body=None, tries=4, raw=False):
@@ -111,7 +111,7 @@ def summarise(cells, group_of, periods, ages, base, pre_from, last, w, per_year)
                 out[p] = float(sum(vals))
         return out
     res = {"groups": {}, "all": {}}
-    allc = sorted(set(scored["comp"]) | set(scored["daioe"]))
+    allc = sorted(set(scored["comp"]) | set(scored["cdaioe"]))
     res["all"] = {a: pack(ser(allc, a), periods, base, pre_from, last, w, per_year) for a in ages}
     for m in MEASURES:
         res["groups"][m] = []
@@ -306,28 +306,28 @@ def us(scores10, scores18, walk, cut, first_year=2017):
 
 
 # ------------------------------------------------------------------ groups
-def assign(score_pair, m, cut):
-    """Paper's groups. cut = (median 2024 DAIOE, median complementarity) across Norwegian occupations.
-    comp: 1 low / 2 high; daioe: 1 low / 2 high; quad: 1 high exp & low comp, 2 high & high,
-    3 low exp & high comp, 4 low & low."""
-    if not score_pair or score_pair[0] is None or score_pair[1] is None:
+def assign(score, m, cut):
+    """score = [complementarity, DAIOE 2024, C-DAIOE 2024]; cut = the occupation medians of each.
+    comp: 1 low / 2 high; cdaioe: 1 low / 2 high C-DAIOE; quad (paper, DAIOE x complementarity):
+    1 high exp & low comp, 2 high & high, 3 low exp & high comp, 4 low & low."""
+    if not score or len(score) < 3 or any(v is None for v in score[:3]):
         return None
-    hc, hx = score_pair[0] >= cut["comp"], score_pair[1] >= cut["daioe"]
+    hc, hx = score[0] >= cut["comp"], score[1] >= cut["daioe"]
     if m == "comp":
         return 2 if hc else 1
-    if m == "daioe":
-        return 2 if hx else 1
+    if m == "cdaioe":
+        return 2 if score[2] >= cut["cdaioe"] else 1
     return 2 if hx and hc else 1 if hx else 3 if hc else 4
 
 
 def main():
     jobs = json.loads((DATA / "ai_jobs.json").read_text(encoding="utf-8"))
     cs = json.loads((DATA / "country_scores.json").read_text(encoding="utf-8"))
-    # the paper's medians (unweighted, across occupations): 2024 DAIOE and task complementarity
-    cut = {"daioe": jobs["medians"]["daioe"], "comp": jobs["medians"]["comp"]}
+    # unweighted occupation medians: 2024 DAIOE and complementarity (the paper's quadrants), 2024 C-DAIOE
+    cut = {"daioe": jobs["medians"]["daioe"], "comp": jobs["medians"]["comp"], "cdaioe": jobs["medians"]["cdaioe"]}
     group2 = {"quad": {t: o["q"] for t, o in jobs["age_detail"]["occ"].items()},
               "comp": {t: o["g"] for t, o in jobs["age_detail"]["occ"].items()},
-              "daioe": {t: o["gd"] for t, o in jobs["age_detail"]["occ"].items()}}
+              "cdaioe": {t: o["gd"] for t, o in jobs["age_detail"]["occ"].items()}}
     out = {"built": time.strftime("%Y-%m-%d"), "cutoffs": cut,
            "countries": {}}
     for name, fn in [("SE", lambda: sweden(cs["ssyk2012"], cut)), ("EU", lambda: eu(group2)),
