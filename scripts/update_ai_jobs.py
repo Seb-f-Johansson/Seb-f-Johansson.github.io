@@ -8,9 +8,10 @@ SSB table 11658: employees (lonnstakere), jobs and monthly earnings by 4-digit S
 occupation, sex and age, quarterly from 2016Q1 (a-ordningen, full count). STYRK-08 equals
 ISCO-08 at four digits, so occupations merge on the code.
 
-Everything here is descriptive. Exposure groups are fixed by the scores in
-data/exposure_scores.json (frontier year), weighted by 2022 employment, and do not change
-when new quarters arrive.
+Everything here is descriptive. Occupations are grouped as in the paper: high or low AI
+exposure relative to the unweighted median of 2024 DAIOE across occupations, high or low task
+complementarity relative to the unweighted median of the complementarity index, and the four
+exposure-complementarity quadrants. Groups do not change when new quarters arrive.
 """
 from __future__ import annotations
 
@@ -108,6 +109,19 @@ def fetch_detail() -> tuple[dict, list[str], str, dict]:
     return values, quarters, meta.get("updated", ""), dims["Yrke"]["category"]["label"]
 
 
+QUAD_YEAR = 2024            # the paper classifies occupations with 2024 DAIOE
+MEASURES = ["quad", "comp", "daioe"]
+NGROUPS = {"quad": 4, "comp": 2, "daioe": 2}
+
+
+def group_of(daioe, comp, md, mc):
+    """Paper's classification. comp: 1 low, 2 high; daioe: 1 low, 2 high; quad: 1-4 as in the paper."""
+    if daioe is None or comp is None:
+        return {"quad": None, "comp": None, "daioe": None}
+    hx, hc = daioe >= md, comp >= mc
+    return {"quad": 2 if hx and hc else 1 if hx else 3 if hc else 4, "comp": 2 if hc else 1, "daioe": 2 if hx else 1}
+
+
 def wquantile_groups(items: list[tuple[str, float, float]], n: int = 5) -> dict[str, int]:
     """Assign occupations to n groups of (roughly) equal weighted employment by score."""
     items = sorted(items, key=lambda t: t[1])
@@ -162,24 +176,24 @@ def main() -> None:
     tot = [values.get(("Lonsstakere", "999D", "0-9", q)) for q in wq]
     total_w = sum(tot) / len(tot) if all(tot) else None
     matched = list(weight)
-    # grouping variables: task complementarity (time-invariant) and AI exposure (DAIOE, frontier year)
-    MEASURES = ["comp", "daioe"]
-    def val(c, m):
-        return occ[c]["comp"] if m == "comp" else occ[c][m][fy]
-    groups = {}
-    for measure in MEASURES:
-        items = [(c, val(c, measure), weight[c]) for c in matched if val(c, measure) is not None]
-        groups[measure] = wquantile_groups(items)
-    # quadrants: DAIOE vs task complementarity, medians across occupations (as in the paper)
+    # Groups as defined in the paper: high and low exposure relative to the unweighted median of
+    # 2024 all-applications DAIOE across occupations, high and low complementarity relative to the
+    # unweighted median of the task-complementarity index. Quadrants: 1 high exposure / low
+    # complementarity, 2 high / high, 3 low exposure / high complementarity, 4 low / low.
+    qy = years.index(QUAD_YEAR)
     def med(xs):
         s = sorted(xs); m = len(s) // 2
         return s[m] if len(s) % 2 else (s[m - 1] + s[m]) / 2
-    md = med([occ[c]["daioe"][fy] for c in occ if occ[c]["daioe"][fy] is not None])
+    md = med([occ[c]["daioe"][qy] for c in occ if occ[c]["daioe"][qy] is not None])
     mc = med([occ[c]["comp"] for c in occ])
-    quad = {}
+    def val(c, m):
+        return occ[c]["comp"] if m == "comp" else occ[c]["daioe"][qy]
+    groups = {m: {} for m in MEASURES}
     for c in matched:
-        hx, hc = occ[c]["daioe"][fy] >= md, occ[c]["comp"] >= mc
-        quad[c] = 2 if hx and hc else 1 if hx else 3 if hc else 4
+        g = group_of(occ[c]["daioe"][qy], occ[c]["comp"], md, mc)
+        for m in MEASURES:
+            groups[m][c] = g[m]
+    quad = groups["quad"]
 
     def series_for(codes, age):
         s = {}
@@ -214,17 +228,12 @@ def main() -> None:
     out_groups = {}
     for measure in MEASURES:
         gl = []
-        for g in range(1, 6):
+        for g in range(1, NGROUPS[measure] + 1):
             codes = [c for c in matched if groups[measure].get(c) == g]
             gl.append({"group": g, "n_occ": len(codes),
                        "emp": {a: pack(series_for(codes, a)) for a in AGES},
                        "wage": pack(wage_for(codes))})
         out_groups[measure] = gl
-    quads = []
-    for k in [1, 2, 3, 4]:
-        codes = [c for c in matched if quad[c] == k]
-        quads.append({"quadrant": k, "n_occ": len(codes), "emp": {a: pack(series_for(codes, a)) for a in AGES},
-                      "wage": pack(wage_for(codes))})
     allc = {"emp": {a: pack(series_for(matched, a)) for a in AGES}, "wage": pack(wage_for(matched))}
 
     # exposure of Norwegian employment by O*NET release (AI frontier fixed), 2022 weights
@@ -255,8 +264,12 @@ def main() -> None:
         cs = [c for c in two[t] if val(c, m) is not None]
         w = sum(weight[c] for c in cs)
         return sum(weight[c] * val(c, m) for c in cs) / w if w else None
-    s2 = {m: {t: score2(t, m) for t in d_occ} for m in MEASURES}
-    g2 = {m: wquantile_groups([(t, s2[m][t], dw[t]) for t in d_occ if s2[m][t] is not None]) for m in s2}
+    s2 = {m: {t: score2(t, m) for t in d_occ} for m in ["comp", "daioe"]}
+    g2 = {m: {} for m in MEASURES}
+    for t in d_occ:
+        g = group_of(s2["daioe"][t], s2["comp"][t], md, mc)
+        for m in MEASURES:
+            g2[m][t] = g[m]
     def dseries(codes, age):
         return {q: float(sum(dvals[(age, t, q)] for t in codes)) for q in dq}
     def dpack(s):
@@ -272,12 +285,12 @@ def main() -> None:
     for m in MEASURES:
         detail["groups"][m] = [{"group": g, "n_occ": sum(1 for t in d_occ if g2[m].get(t) == g),
                                 "emp": {a: dpack(dseries([t for t in d_occ if g2[m].get(t) == g], a)) for a in AGES_DETAIL}}
-                               for g in range(1, 6)]
+                               for g in range(1, NGROUPS[m] + 1)]
     for t in d_occ:
         detail["occ"][t] = {"t": d_labels.get(t, t).replace("\u00bf", "\u2019"),
                             "comp": None if s2["comp"][t] is None else round(s2["comp"][t], 4),
                             "daioe": None if s2["daioe"][t] is None else round(s2["daioe"][t], 2),
-                            "g": g2["comp"].get(t), "gd": g2["daioe"].get(t),
+                            "g": g2["comp"].get(t), "gd": g2["daioe"].get(t), "q": g2["quad"].get(t),
                             "w": round(dw[t]),
                             "w25": round(sum(dvals[("-24", t, q)] for q in dq if q.startswith(WEIGHT_YEAR)) / 4),
                             "change": {a: dpack(dseries([t], a))["change"] for a in AGES_DETAIL}}
@@ -345,11 +358,11 @@ def main() -> None:
         "weight_year": WEIGHT_YEAR,
         "coverage": round(sum(weight.values()) / total_w, 4) if total_w else None,
         "n_matched": len(matched),
-        "medians": {"daioe": round(md, 2), "comp": round(mc, 4)},
+        "medians": {"daioe": round(md, 2), "comp": round(mc, 4), "daioe_year": QUAD_YEAR},
+        "groups_def": "paper: unweighted occupation medians of 2024 DAIOE and of the task-complementarity index",
         "ages": [{"code": a, "label": AGE_LABEL[a]} for a in AGES],
         "all": allc,
         "groups": out_groups,
-        "quadrants": quads,
         "by_release": by_release,
         "by_year": by_year,
         "occ": occ_out,
