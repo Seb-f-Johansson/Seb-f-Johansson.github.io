@@ -18,6 +18,7 @@
   --q2: #2a78d6;   /* high exposure, high complementarity */
   --q3: #1baf7a;   /* low exposure, high complementarity */
   --q4: #8b9099;   /* low exposure, low complementarity (neutral) */
+  --pos: #2f8f5b; --neg: #c8553d; --s1: #a3c3ea; --s2: #6f9fdb; --s3: #3f7ccb; --s4: #1f5fa8; --s5: #0e3566;   /* exposure quintiles, low -> high */
   --radius: 10px;
   --maxw: 1040px;
   --serif: Georgia, "Times New Roman", serif;
@@ -30,6 +31,7 @@
     --bg: #15171a; --bg-2: #1c1f24; --card: #1f2329; --ink: #ecebe6; --ink-2: #b9bcc3; --ink-3: #868c96;
     --line: #2d323a; --accent: #6aa5ee; --accent-2: #3987e5; --accent-soft: #1d2a3c; --on-accent: #0e1a2b;
     --q1: #d95926; --q2: #3987e5; --q3: #199e70; --q4: #7a808a;
+    --pos: #47b07a; --neg: #e0775f; --s1: #33547f; --s2: #3f72b3; --s3: #5b93dc; --s4: #8db8ef; --s5: #cfe2fa;
   }
 }
 :root[data-theme="dark"] {
@@ -37,6 +39,7 @@
   --bg: #15171a; --bg-2: #1c1f24; --card: #1f2329; --ink: #ecebe6; --ink-2: #b9bcc3; --ink-3: #868c96;
   --line: #2d323a; --accent: #6aa5ee; --accent-2: #3987e5; --accent-soft: #1d2a3c; --on-accent: #0e1a2b;
   --q1: #d95926; --q2: #3987e5; --q3: #199e70; --q4: #7a808a;
+  --pos: #47b07a; --neg: #e0775f; --s1: #33547f; --s2: #3f72b3; --s3: #5b93dc; --s4: #8db8ef; --s5: #cfe2fa;
 }
 
 * { box-sizing: border-box; }
@@ -163,3 +166,33 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 16px; justify-content: space
 .kv { display: grid; grid-template-columns: 120px 1fr; gap: 6px 16px; }
 .kv dt { color: var(--ink-3); }
 .kv dd { margin: 0; }
+
+/* AI and Norwegian jobs page */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin: 14px 0 6px; }
+.stat { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; }
+.stat .v { font-family: var(--serif); font-size: 1.9rem; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.stat .l { color: var(--ink-2); font-size: .86rem; margin-top: 4px; }
+.seg { display: inline-flex; flex-wrap: wrap; max-width: 100%; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.seg button { border: 0; background: var(--bg); color: var(--ink-2); padding: 7px 11px; font: inherit; font-size: .88rem; cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); font-weight: 600; }
+.ctl-label { font-size: .82rem; color: var(--ink-3); margin-right: 2px; }
+.chart { position: relative; }
+.chart svg text { font-family: var(--sans); }
+.ln-label { font-size: 11px; fill: var(--ink-2); paint-order: stroke; stroke: var(--card); stroke-width: 3px; }
+.marker line { stroke: var(--ink-3); stroke-dasharray: 3 3; }
+.marker text { fill: var(--ink-3); font-size: 11px; }
+.cross line { stroke: var(--ink-3); }
+.tooltip table { border-collapse: collapse; font-size: .82rem; }
+.tooltip td { padding: 1px 6px 1px 0; }
+.tooltip td.num { text-align: right; font-variant-numeric: tabular-nums; }
+.sw { display: inline-block; width: 14px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 4px; }
+.occ-card { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 12px; }
+@media (max-width: 720px) { .occ-card { grid-template-columns: 1fr; } }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; font-size: .92rem; }
+.kv dt { color: var(--ink-3); }
+.kv dd { margin: 0; font-variant-numeric: tabular-nums; }
+.caveat { border-left: 3px solid var(--line); padding: 2px 0 2px 12px; color: var(--ink-2); font-size: .93rem; }
+table.data.heat td.num { font-variant-numeric: tabular-nums; }
+table.data.heat td.cell { text-align: right; }
+.two > div { min-width: 0; overflow-x: auto; }

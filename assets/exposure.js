@@ -3,12 +3,12 @@
   'use strict';
   var chart = document.getElementById('chart');
   if (!chart) return;
-  var q = document.getElementById('q'), majorSel = document.getElementById('major'), xSel = document.getElementById('xvar');
+  var q = document.getElementById('q'), majorSel = document.getElementById('major'), xSel = document.getElementById('xvar'), ySel = document.getElementById('year');
   var tBtn = document.getElementById('toggleTable'), tWrap = document.getElementById('tableWrap'), tbody = document.querySelector('#table tbody');
   var countEl = document.getElementById('count');
   var NS = 'http://www.w3.org/2000/svg';
   var W = 900, H = 540, M = { t: 24, r: 24, b: 54, l: 62 };
-  var data = [], med = {}, state = { x: 'daioe', query: '', major: '', sortK: 'daioe', sortDir: -1 };
+  var data = [], med = {}, raw = null, state = { x: 'daioe', query: '', major: '', sortK: 'daioe', sortDir: -1, year: 2024 };
   var MAJOR = { '1': 'Managers', '2': 'Professionals', '3': 'Technicians and associate professionals', '4': 'Clerical support workers',
                 '5': 'Service and sales workers', '6': 'Skilled agricultural, forestry and fishery workers', '7': 'Craft and related trades workers',
                 '8': 'Plant and machine operators and assemblers', '9': 'Elementary occupations' };
@@ -41,7 +41,7 @@
 
   function draw() {
     chart.querySelectorAll('svg').forEach(function (s) { s.remove(); });
-    var xk = state.x, xlab = xk === 'daioe' ? 'AI exposure (DAIOE, 2024)' : 'Complementarity-adjusted exposure (C-DAIOE, 2024)';
+    var xk = state.x, yl = state.year + (state.year >= 2025 ? (state.year === 2026 ? ', provisional, year to date' : ', provisional') : ''), xlab = xk === 'daioe' ? 'AI exposure (DAIOE, ' + yl + ')' : 'Complementarity-adjusted exposure (C-DAIOE, ' + yl + ')';
     var xs = data.map(function (d) { return d[xk]; }), ys = data.map(function (d) { return d.comp; });
     var x0 = Math.min.apply(null, xs), x1 = Math.max.apply(null, xs), y0 = Math.min.apply(null, ys), y1 = Math.max.apply(null, ys);
     var px = (x1 - x0) * 0.04, py = (y1 - y0) * 0.06; x0 -= px; x1 += px; y0 -= py; y1 += py;
@@ -137,13 +137,15 @@
   // deep link: exposure.html?q=2631
   var qs = new URLSearchParams(location.search).get('q'); if (qs) { q.value = qs; state.query = qs.trim().toLowerCase(); }
 
-  fetch('data/exposure_2024.json').then(function (r) { return r.json(); }).then(function (j) {
-    var ci = {}; j.cols.forEach(function (c, i) { ci[c] = i; });
-    data = j.rows.map(function (r) { return { isco: String(r[ci.isco]), title: r[ci.title], daioe: +r[ci.daioe], cdaioe: +r[ci.cdaioe], comp: +r[ci.comp] }; })
-                 .filter(function (d) { return isFinite(d.daioe) && isFinite(d.comp); });
-    med = { daioe: j.median_daioe || median(data.map(function (d) { return d.daioe; })),
-            cdaioe: median(data.map(function (d) { return d.cdaioe; })),
-            comp: j.median_comp || median(data.map(function (d) { return d.comp; })) };
+  function load() {
+    var yi = raw.years.indexOf(state.year), ci = {}; raw.cols.forEach(function (c, i) { ci[c] = i; });
+    data = raw.rows.map(function (r) { return { isco: String(r[ci.isco]), title: r[ci.title], daioe: r[ci.daioe][yi], cdaioe: r[ci.cdaioe][yi], comp: +r[ci.comp] }; })
+                   .filter(function (d) { return d.daioe != null && d.cdaioe != null && isFinite(d.comp); });
+    med = { daioe: median(data.map(function (d) { return d.daioe; })), cdaioe: median(data.map(function (d) { return d.cdaioe; })),
+            comp: median(data.map(function (d) { return d.comp; })) };
     draw();
-  }).catch(function () { chart.innerHTML = '<div class="notice">Could not load data/exposure_2024.json.</div>'; });
+  }
+  if (ySel) ySel.addEventListener('change', function () { state.year = +ySel.value; load(); });
+  fetch('data/exposure_scores.json').then(function (r) { return r.json(); }).then(function (j) { raw = j; load(); })
+    .catch(function () { chart.innerHTML = '<div class="notice">Could not load data/exposure_scores.json.</div>'; });
 })();
