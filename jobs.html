@@ -46,7 +46,7 @@ try { var t = localStorage.getItem('theme'); if (t) document.documentElement.set
   <button role="tab" data-c="EXP" aria-selected="true">Exposure explorer</button><button role="tab" data-c="NO" aria-selected="false">Norway</button><button role="tab" data-c="SE" aria-selected="false">Sweden</button><button role="tab" data-c="EU" aria-selected="false">European Union</button><button role="tab" data-c="US" aria-selected="false">United States</button><button role="tab" data-c="CMP" aria-selected="false">Compare countries</button>
 </div>
 <div id="tab-EXP" role="tabpanel">
-<p>Each point is one of 422 four-digit ISCO-08 occupations. The horizontal axis is the Dynamic AI Occupational Exposure index (DAIOE, all applications); the vertical axis is the task-complementarity index, which measures how much the occupation's tasks sit in contexts where human input remains valuable. Colours and the dashed lines are the paper's quadrants: the medians of 2024 DAIOE (35.0) and of complementarity (0.323). With C-DAIOE on the horizontal axis only the complementarity line is drawn. The year menu moves the points to the provisional 2025 and 2026 values (see "Updated exposure measures" on the Norway tab) without reclassifying them. The complementarity-adjusted index C-DAIOE used in <a href="research.html#ai-reallocation">my job market paper</a> discounts exposure by complementarity, so the occupations where AI is most likely to substitute for labor are those in the lower-right quadrant.</p>
+<p>Each point is one of 422 four-digit ISCO-08 occupations. The horizontal axis is the Dynamic AI Occupational Exposure index (DAIOE, all applications); the vertical axis is the task-complementarity index, which measures how much the occupation's tasks sit in contexts where human input remains valuable. Colours and the dashed lines are the paper's quadrants: the medians of 2024 DAIOE (35.0) and of complementarity (0.323). With C-DAIOE on the horizontal axis only the complementarity line is drawn. The year menu moves the points to the provisional 2025 and 2026 values (see "Updated exposure measures" below) without reclassifying them. The complementarity-adjusted index C-DAIOE used in <a href="research.html#ai-reallocation">my job market paper</a> discounts exposure by complementarity, so the occupations where AI is most likely to substitute for labor are those in the lower-right quadrant.</p>
 
 <div class="viz" id="viz">
   <div class="controls">
@@ -93,6 +93,29 @@ try { var t = localStorage.getItem('theme'); if (t) document.documentElement.set
     </table>
   </div>
   <p class="small muted" id="count" style="margin:10px 0 0"></p>
+</div>
+
+<h2>Updated exposure measures</h2>
+<p>The paper's DAIOE series runs to 2024. Here it is extended to 2025 and, provisionally, to 2026, with the same rule as the 2024 step: each AI application's subindex grows with the best benchmark result to date, using the Papers with Code archive (results up to July 2025) and Epoch AI's benchmarking data (dated by model release). The chart shows the average across the 422 occupations, unweighted. 2025 and 2026 are provisional, and 2026 uses results released so far this year.</p>
+<div class="viz">
+  <div class="chart" id="ch-years"></div>
+  <div class="legend"><span><span class="sw" style="background:var(--s4)"></span>DAIOE (published series, extended)</span><span><span class="sw" style="background:var(--q1)"></span>C-DAIOE</span><span><span class="sw" style="background:repeating-linear-gradient(90deg,var(--ink-3) 0 4px,transparent 4px 7px)"></span>provisional</span></div>
+  <div class="table-wrap" style="max-height:none"><table class="data" id="tb-apps"><thead><tr><th>Application</th><th class="num">2025 growth factor</th><th class="num">Benchmarks</th><th class="num">2026 growth factor</th><th class="num">Benchmarks</th></tr></thead><tbody></tbody></table></div>
+  <p class="small muted" style="margin:8px 0 0">A factor of 1.00 with no benchmarks means no new results were available, so the subindex is held at the previous year's level. No current benchmark covers translation, Go, or (in 2026) images and speech, so the 2026 value understates progress in those applications.</p>
+</div>
+
+<h2>Are jobs changing in ways that matter for AI?</h2>
+<p>O*NET re-rates the abilities, tasks and work context of a share of occupations in every release. Holding the AI frontier fixed at 2025, the chart recomputes exposure with each O*NET release from 19.0 (2014) to 31.0 (2026). A rising line means that occupations, as O*NET describes them, have moved towards the abilities and tasks where AI has advanced; a falling line means the opposite. Ability-only DAIOE uses the ability profile alone; C-DAIOE also uses the tasks and their complementarity. Both are indexed to the paper's release (24.3 = 100) and averaged over the 418 occupations scored in every release, unweighted.</p>
+<div class="viz">
+  <div class="chart" id="ch-rel"></div>
+  <div class="legend"><span><span class="sw" style="background:var(--q1)"></span>C-DAIOE</span><span><span class="sw" style="background:var(--s4)"></span>Ability-only DAIOE</span></div>
+  <p class="small muted" style="margin:8px 0 0">Release 26.0 moved O*NET to the 2019 occupation taxonomy; its occupations are mapped back to the 2010 codes with O*NET's crosswalk, so part of the step at 26.0 reflects new and merged occupations rather than re-rated ones.</p>
+</div>
+<h3 style="margin-top:1.4rem">Largest changes between the paper's O*NET release (24.3) and the latest (31.0)</h3>
+<p class="small muted">C-DAIOE at the 2025 AI frontier, all occupations; click one to find it in the explorer above. "Re-rated" is the share of the occupation's O*NET codes whose ability ratings were collected after release 24.3.</p>
+<div class="two">
+  <div><table class="data" id="tb-up"><thead><tr><th>Moved towards AI</th><th class="num">24.3</th><th class="num">31.0</th><th class="num">Re-rated</th></tr></thead><tbody></tbody></table></div>
+  <div><table class="data" id="tb-down"><thead><tr><th>Moved away from AI</th><th class="num">24.3</th><th class="num">31.0</th><th class="num">Re-rated</th></tr></thead><tbody></tbody></table></div>
 </div>
 
 <h2>About the exposure data</h2>
@@ -155,29 +178,6 @@ try { var t = localStorage.getItem('theme'); if (t) document.documentElement.set
 <div class="viz">
   <div class="chart" id="ch-wage"></div>
   <div class="legend" id="lg-wage"></div>
-</div>
-
-<h2>Updated exposure measures</h2>
-<p>The paper's DAIOE series runs to 2024. Here it is extended to 2025 and, provisionally, to 2026, with the same rule as the 2024 step: each AI application's subindex grows with the best benchmark result to date, using the Papers with Code archive (results up to July 2025) and Epoch AI's benchmarking data (dated by model release). The chart shows average exposure of Norwegian employment (2022 weights). 2025 and 2026 are provisional, and 2026 uses results released so far this year.</p>
-<div class="viz">
-  <div class="chart" id="ch-years"></div>
-  <div class="legend"><span><span class="sw" style="background:var(--s4)"></span>DAIOE (published series, extended)</span><span><span class="sw" style="background:var(--q1)"></span>C-DAIOE</span><span><span class="sw" style="background:repeating-linear-gradient(90deg,var(--ink-3) 0 4px,transparent 4px 7px)"></span>provisional</span></div>
-  <div class="table-wrap" style="max-height:none"><table class="data" id="tb-apps"><thead><tr><th>Application</th><th class="num">2025 growth factor</th><th class="num">Benchmarks</th><th class="num">2026 growth factor</th><th class="num">Benchmarks</th></tr></thead><tbody></tbody></table></div>
-  <p class="small muted" style="margin:8px 0 0">A factor of 1.00 with no benchmarks means no new results were available, so the subindex is held at the previous year's level. No current benchmark covers translation, Go, or (in 2026) images and speech, so the 2026 value understates progress in those applications.</p>
-</div>
-
-<h2>Are jobs changing in ways that matter for AI?</h2>
-<p>O*NET re-rates the abilities, tasks and work context of a share of occupations in every release. Holding the AI frontier fixed at 2025, the chart recomputes exposure with each O*NET release from 19.0 (2014) to 31.0 (2026). A rising line means that occupations, as O*NET describes them, have moved towards the abilities and tasks where AI has advanced; a falling line means the opposite. Ability-only DAIOE uses the ability profile alone; C-DAIOE also uses the tasks and their complementarity. Both are indexed to the paper's release (24.3 = 100) and averaged over Norwegian employment.</p>
-<div class="viz">
-  <div class="chart" id="ch-rel"></div>
-  <div class="legend"><span><span class="sw" style="background:var(--q1)"></span>C-DAIOE</span><span><span class="sw" style="background:var(--s4)"></span>Ability-only DAIOE</span></div>
-  <p class="small muted" style="margin:8px 0 0">Release 26.0 moved O*NET to the 2019 occupation taxonomy; its occupations are mapped back to the 2010 codes with O*NET's crosswalk, so part of the step at 26.0 reflects new and merged occupations rather than re-rated ones.</p>
-</div>
-<h3 style="margin-top:1.4rem">Largest changes between the paper's O*NET release (24.3) and the latest (31.0)</h3>
-<p class="small muted">C-DAIOE at the 2025 AI frontier; occupations with at least 1,000 employees in Norway in 2022. "Re-rated" is the share of the occupation's O*NET codes whose ability ratings were collected after release 24.3.</p>
-<div class="two">
-  <div><table class="data" id="tb-up"><thead><tr><th>Moved towards AI</th><th class="num">24.3</th><th class="num">31.0</th><th class="num">Re-rated</th></tr></thead><tbody></tbody></table></div>
-  <div><table class="data" id="tb-down"><thead><tr><th>Moved away from AI</th><th class="num">24.3</th><th class="num">31.0</th><th class="num">Re-rated</th></tr></thead><tbody></tbody></table></div>
 </div>
 
 <h2>Which abilities and skills is employment moving towards?</h2>
@@ -281,6 +281,6 @@ try { var t = localStorage.getItem('theme'); if (t) document.documentElement.set
   </div>
 </footer>
 <script src="assets/site.js?v=0dadcda1"></script>
-<script src="assets/exposure.js?v=dcb54dd2"></script><script src="assets/jobs.js?v=c5b6209e"></script>
+<script src="assets/exposure.js?v=dcb54dd2"></script><script src="assets/jobs.js?v=a6474058"></script>
 </body>
 </html>
