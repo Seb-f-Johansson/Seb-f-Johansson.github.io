@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>AI and Norwegian Jobs — Sebastian Frånlund Johansson</title>
+<title>AI and Jobs — Sebastian Frånlund Johansson</title>
 <meta name="description" content="Employment and earnings in Norwegian occupations by AI exposure (DAIOE and C-DAIOE), before and after ChatGPT, from SSB register data. Updated automatically.">
-<meta property="og:title" content="AI and Norwegian Jobs — Sebastian Frånlund Johansson">
+<meta property="og:title" content="AI and Jobs — Sebastian Frånlund Johansson">
 <meta property="og:description" content="Employment and earnings in Norwegian occupations by AI exposure (DAIOE and C-DAIOE), before and after ChatGPT, from SSB register data. Updated automatically.">
 <meta property="og:image" content="assets/photo.webp">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
@@ -40,9 +40,13 @@ try { var t = localStorage.getItem('theme'); if (t) document.documentElement.set
 </header>
 <main class="wrap">
 
-<h1>AI and Norwegian jobs</h1>
-<p>How have employment and earnings developed in the Norwegian occupations most exposed to AI, before and after ChatGPT was released in November 2022? This page combines my occupation-level exposure measures with Statistics Norway's quarterly register data on employees by occupation, and updates itself when SSB publishes a new quarter. Everything here is descriptive: the comparison shows how exposed and less exposed occupations have moved, not what AI caused.</p>
+<h1>AI and jobs</h1>
+<p>How have employment and earnings developed in the occupations most exposed to AI, before and after ChatGPT was released in November 2022? This page combines my occupation-level exposure measures with official employment data for Norway, Sweden, the EU and the United States, and updates itself when new data are published. Everything here is descriptive: the comparison shows how exposed and less exposed occupations have moved, not what AI caused.</p>
 
+<div class="tabs" role="tablist" id="ctabs">
+  <button role="tab" data-c="NO" aria-selected="true">Norway</button><button role="tab" data-c="SE" aria-selected="false">Sweden</button><button role="tab" data-c="EU" aria-selected="false">European Union</button><button role="tab" data-c="US" aria-selected="false">United States</button><button role="tab" data-c="CMP" aria-selected="false">Compare countries</button>
+</div>
+<div id="tab-NO" role="tabpanel">
 <div class="stats" id="stats">
   <div class="stat"><div class="v" id="st-last">…</div><div class="l">Latest quarter in SSB table 11658</div></div>
   <div class="stat"><div class="v" id="st-cov">…</div><div class="l">Share of employees covered by the matched occupations</div></div>
@@ -162,12 +166,65 @@ try { var t = localStorage.getItem('theme'); if (t) document.documentElement.set
   <div id="occ-out" class="small muted">Type an occupation to see its exposure scores, its employees and earnings since 2016, and how its O*NET profile has changed.</div>
 </div>
 
+</div>
+
+<div id="tab-X" role="tabpanel" hidden>
+  <p id="x-intro"></p>
+  <div class="stats" id="x-stats"></div>
+  <p class="small muted" id="x-stamp"></p>
+  <h2>Employment by complementarity and exposure</h2>
+  <p id="x-text"></p>
+  <div class="viz">
+    <div class="controls">
+      <span id="x-geo-wrap" hidden><span class="ctl-label">Country</span> <select id="x-geo" aria-label="Country"></select></span>
+      <span class="ctl-label">Group by</span>
+      <div class="seg" id="x-measure"><button data-v="comp" aria-pressed="true">Complementarity</button><button data-v="daioe" aria-pressed="false">AI exposure (DAIOE)</button></div>
+      <span id="x-age-wrap"><span class="ctl-label">Age</span> <div class="seg" id="x-age"></div></span>
+    </div>
+    <div class="chart" id="x-chart"></div>
+    <div class="legend" id="x-legend"></div>
+  </div>
+  <h2>Growth before and after ChatGPT</h2>
+  <p id="x-gtext"></p>
+  <div class="viz">
+    <div class="chart" id="x-dumb"></div>
+    <div class="legend"><span><i class="dot" style="background:transparent;border:2px solid var(--ink-3)"></i>Before</span><span><i class="dot" style="background:var(--accent)"></i>After</span><span><span class="sw" style="background:var(--ink-3)"></span>All occupations</span></div>
+    <div class="table-wrap" style="max-height:none"><table class="data" id="x-table"><thead><tr><th>Group</th><th class="num">Occupations</th><th class="num">Before, % a year</th><th class="num">After, % a year</th><th class="num">Change, pp</th><th class="num">Change vs all, pp</th></tr></thead><tbody></tbody></table></div>
+  </div>
+  <div id="x-age-sec">
+    <h2>By age</h2>
+    <p>Change in employees from the base period to the latest period, by group and age; the colour shows the gap to all occupations in the same age group.</p>
+    <div class="viz"><div class="table-wrap" style="max-height:none;margin-top:0"><table class="data heat" id="x-heat"><thead></thead><tbody></tbody></table></div></div>
+  </div>
+  <p class="caveat" id="x-caveat"></p>
+</div>
+
+<div id="tab-CMP" role="tabpanel" hidden>
+  <p>The same complementarity groups in all four places: the cut-offs are the Norwegian ones, so each group holds occupations with the same scores everywhere (two-digit occupations for the EU). The comparison uses each source's own before and after windows, all with the base at the last period before ChatGPT; the windows and data types differ, so compare the pattern across groups within a country more than the levels across countries.</p>
+  <div class="viz">
+    <div class="controls">
+      <span class="ctl-label">Group by</span>
+      <div class="seg" id="cmp-measure"><button data-v="comp" aria-pressed="true">Complementarity</button><button data-v="daioe" aria-pressed="false">AI exposure (DAIOE)</button></div>
+      <span class="ctl-label">Show</span>
+      <div class="seg" id="cmp-v"><button data-v="diff" aria-pressed="true">Change in growth vs all</button><button data-v="post" aria-pressed="false">Growth after, vs all</button></div>
+    </div>
+    <div class="chart" id="cmp-chart"></div>
+    <div class="legend" id="cmp-legend"></div>
+    <div class="table-wrap" style="max-height:none"><table class="data" id="cmp-table"><thead></thead><tbody></tbody></table></div>
+  </div>
+  <h3 style="margin-top:1.4rem">Young workers</h3>
+  <p class="small muted">Change in employees under 25 since the base period, by complementarity group, relative to all occupations in the same age group (percentage points). Norway uses the two-digit panel (table 14160); the EU table has no age split at two digits.</p>
+  <div class="viz"><div class="table-wrap" style="max-height:none;margin-top:0"><table class="data heat" id="cmp-young"><thead></thead><tbody></tbody></table></div></div>
+  <p class="small muted" id="cmp-cut"></p>
+</div>
+
 <h2>How it is built</h2>
 <p class="caveat"><b>What this is not.</b> The groups differ in many ways besides AI exposure. The most exposed occupations are office, finance and IT jobs, which are also sensitive to interest rates, and the post-ChatGPT period coincides with the rise in interest rates from 2022 and the end of the pandemic recovery. A gap between groups is a pattern to explain, not an effect of AI.</p>
 <p class="small muted"><b>Employment and earnings.</b> SSB <a href="https://www.ssb.no/statbank/table/11658/">table 11658</a>: employees (lønnstakere), all sexes, by four-digit STYRK-08 occupation and age, and median monthly earnings, quarterly from 2016, from the a-ordningen register. STYRK-08 equals ISCO-08 at four digits. The page uses the balanced panel of occupations with counts in every quarter and age group, which covers the share of employees shown above; SSB rounds counts of one and two. Self-employed workers are not in the table. Groups are fixed by the complementarity index, the 2025 DAIOE scores and 2022 employment, so they do not move when new quarters arrive.</p>
+<p class="small muted"><b>Other countries.</b> Sweden: SCB occupational register, employees 16–64 by four-digit SSYK 2012 and age, annual (tables YREG51N for 2019–2021 and YREG51BAS from 2020, chained at 2020; employees with an unidentified occupation are spread across occupations in proportion to the coded ones, because occupation coding improved over these years). SSYK codes get the mean score of the ISCO-08 codes they map to in SCB's key. EU: Eurostat Labour Force Survey (lfsa_egai2d), employed persons 15–64 by two-digit ISCO-08, annual, EU-27 and each country; the LFS was redesigned in 2021. US: Census Bureau Current Population Survey, basic monthly public-use files, wage and salary employees 16 and over by Census occupation code, with composite weights, as twelve-month averages; the October 2025 survey was not carried out. Census codes are scored directly from the SOC-based scores (no ISCO crosswalk), and 2010 codes before 2020 are mapped to 2018 codes. Groups use the Norwegian cut-offs everywhere.</p>
 <p class="small muted"><b>Finer ages and skill set.</b> SSB <a href="https://www.ssb.no/statbank/table/14160/">table 14160</a> (employees by two-digit occupation and seven age groups, quarterly from 2021). The skill-set measure uses O*NET 24.3 importance ratings mapped to ISCO-08 through the paper's SOC crosswalk and SSB employment from table 11658; growth rates are between four-quarter averages, as above.</p>
 <p class="small muted"><b>Exposure.</b> DAIOE (Engberg et al.) links AI benchmark progress in nine applications to the abilities each occupation requires. C-DAIOE, from my paper, reallocates each occupation's ability exposure across its O*NET tasks and discounts it where the task context makes AI more likely to complement than replace the worker. 2010–2024 are the values used in the paper. The 2025 and 2026 extension and the O*NET-release comparison are new on this page and are not in the paper; the scripts are <code>extend_daioe_frontier.py</code>, <code>prepare_onet_vintages.py</code> and <code>run_cdaioe_vintage.py</code>. In the O*NET-release comparison the AI progress series, the composite weights, the yearly scale and the three cross-occupation normalising constants are all held at the paper's values, so only the occupation descriptions change.</p>
-<p class="small muted"><b>Updates.</b> A scheduled job in this site's repository queries SSB every week and rebuilds <a href="data/ai_jobs.json">data/ai_jobs.json</a> when a new quarter appears. The exposure scores (<a href="data/exposure_scores.json">data/exposure_scores.json</a>) are rebuilt by hand when new benchmark results or a new O*NET release come out, about once a year. Sources: Statistics Norway; O*NET 19.0–31.0 (U.S. Department of Labor, CC BY 4.0); Epoch AI, Capabilities and benchmarking (CC BY 4.0); Papers with Code archive (CC BY-SA 4.0).</p>
+<p class="small muted"><b>Updates.</b> A scheduled job in this site's repository queries SSB, SCB, Eurostat and the Census Bureau every week and rebuilds <a href="data/ai_jobs.json">data/ai_jobs.json</a> and <a href="data/countries.json">data/countries.json</a> when new data appear. The exposure scores (<a href="data/exposure_scores.json">data/exposure_scores.json</a>) are rebuilt by hand when new benchmark results or a new O*NET release come out, about once a year. Sources: Statistics Norway; Statistics Sweden; Eurostat; U.S. Census Bureau; O*NET 19.0–31.0 (U.S. Department of Labor, CC BY 4.0); Epoch AI, Capabilities and benchmarking (CC BY 4.0); Papers with Code archive (CC BY-SA 4.0).</p>
 
 </main>
 <footer>

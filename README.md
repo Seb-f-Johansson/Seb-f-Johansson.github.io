@@ -14,6 +14,10 @@ data/exposure_2024.json   422 ISCO-08 occupations: DAIOE 2024, C-DAIOE, compleme
 data/exposure_scores.json DAIOE and C-DAIOE 2010-2026 (2025-26 provisional), C-DAIOE by O*NET release
 data/ai_jobs.json         SSB tables 11658 and 14160 aggregates; rebuilt weekly by the workflow below
 data/skill_profiles.json  O*NET 24.3 ability and skill importance by ISCO-08, ability AI exposure
+data/country_scores.json  scores in Swedish SSYK and US Census occupation codes
+data/countries.json       Sweden, EU, US aggregates (same group cut-offs as Norway); rebuilt weekly
+data/us_cps_months.json   cache of monthly CPS cells, so the job only downloads new months
+scripts/update_countries.py rebuilds data/countries.json
 scripts/update_ai_jobs.py rebuilds data/ai_jobs.json from SSB (standard library only)
 .github/workflows/update-ai-jobs.yml   weekly schedule (Mondays 06:17 UTC) + manual run
 cv/Sebastian_Johansson_CV.pdf
