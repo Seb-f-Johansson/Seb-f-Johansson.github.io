@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI and Norwegian Jobs — Sebastian Frånlund Johansson</title>
+<meta name="description" content="Employment and earnings in Norwegian occupations by AI exposure (DAIOE and C-DAIOE), before and after ChatGPT, from SSB register data. Updated automatically.">
+<meta property="og:title" content="AI and Norwegian Jobs — Sebastian Frånlund Johansson">
+<meta property="og:description" content="Employment and earnings in Norwegian occupations by AI exposure (DAIOE and C-DAIOE), before and after ChatGPT, from SSB register data. Updated automatically.">
+<meta property="og:image" content="assets/photo.webp">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/style.css">
+<script>
+// apply saved theme before first paint to avoid a flash
+try { var t = localStorage.getItem('theme'); if (t) document.documentElement.setAttribute('data-theme', t); } catch (e) {}
+</script>
+
+</head>
+<body data-github="Seb-f-Johansson">
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="index.html">Sebastian Frånlund Johansson</a>
+    <nav class="main" id="nav" aria-label="Main">
+      <a href="index.html">Home</a>
+      <a href="research.html">Research</a>
+      <a href="exposure.html">AI Exposure</a>
+      <a href="jobs.html" aria-current="page">AI &amp; Jobs</a>
+      <a href="teaching.html">Teaching</a>
+      <a href="cv.html">CV</a>
+    </nav>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="theme-btn" id="theme" type="button" aria-label="Toggle dark mode" title="Toggle dark mode">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path class="sun" d="M12 3v2M12 19v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M3 12h2M19 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/><circle class="sun" cx="12" cy="12" r="4"/><path class="moon" d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" style="display:none"/></svg>
+      </button>
+      <button class="theme-btn nav-toggle" id="navToggle" type="button" aria-label="Menu" aria-expanded="false" aria-controls="nav">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap">
+
+<h1>AI and Norwegian jobs</h1>
+<p>How have employment and earnings developed in the Norwegian occupations most exposed to AI, before and after ChatGPT was released in November 2022? This page combines my occupation-level exposure measures with Statistics Norway's quarterly register data on employees by occupation, and updates itself when SSB publishes a new quarter. Everything here is descriptive: the comparison shows how exposed and less exposed occupations have moved, not what AI caused.</p>
+
+<div class="stats" id="stats">
+  <div class="stat"><div class="v" id="st-last">…</div><div class="l">Latest quarter in SSB table 11658</div></div>
+  <div class="stat"><div class="v" id="st-cov">…</div><div class="l">Share of employees covered by the matched occupations</div></div>
+  <div class="stat"><div class="v" id="st-gap">…</div><div class="l" id="st-gap-l">Change in annual employment growth, lowest-complementarity fifth vs all, under 40</div></div>
+  <div class="stat"><div class="v" id="st-exp">…</div><div class="l" id="st-exp-l">Employment-weighted C-DAIOE</div></div>
+</div>
+<p class="small muted" id="stamp"></p>
+
+<h2>Employment by complementarity and exposure</h2>
+<p>Occupations are split into five groups of equal 2022 employment, either by the task-complementarity index (from the lowest, where AI is most likely to substitute for the worker, to the highest) or by AI exposure (DAIOE, from least to most exposed). Each line is the number of employees in the group, averaged over the last four quarters to remove the seasonal pattern, relative to the year to the third quarter of 2022, the last full quarter before ChatGPT. Because of the averaging, the first value that contains only post-ChatGPT quarters is 2023 Q3. Compare the groups with each other and with all occupations (dashed).</p>
+<div class="viz">
+  <div class="controls">
+    <span class="ctl-label">Group by</span>
+    <div class="seg" id="c-measure"><button data-v="comp" aria-pressed="true">Complementarity</button><button data-v="daioe" aria-pressed="false">AI exposure (DAIOE)</button></div>
+    <span class="ctl-label">Age</span>
+    <div class="seg" id="c-age"><button data-v="999D" aria-pressed="false">All</button><button data-v="0-39" aria-pressed="true">Under 40</button><button data-v="40-54" aria-pressed="false">40–54</button><button data-v="55+" aria-pressed="false">55+</button></div>
+    <span class="ctl-label">From</span>
+    <div class="seg" id="c-from"><button data-v="2016K1" aria-pressed="false">2016</button><button data-v="2019K1" aria-pressed="true">2019</button><button data-v="2021K1" aria-pressed="false">2021</button></div>
+  </div>
+  <div class="chart" id="ch-quint"></div>
+  <div class="legend" id="lg-quint"></div>
+</div>
+
+<h2>Growth before and after ChatGPT</h2>
+<p>Average annual growth in employees, before (third quarter 2018 to third quarter 2022) and after (third quarter 2022 to the latest quarter). Growth is measured between four-quarter averages, which removes the seasonal pattern. The pre-period includes the pandemic. Grouping and age follow the choices above.</p>
+<div class="viz">
+  <div class="chart" id="ch-dumb"></div>
+  <div class="legend"><span><i class="dot" style="background:transparent;border:2px solid var(--ink-3)"></i>Before (2018Q3–2022Q3)</span><span><i class="dot" style="background:var(--accent)"></i>After (2022Q3–latest)</span><span><span class="sw" style="background:var(--ink-3)"></span>All occupations</span></div>
+  <div class="table-wrap" style="max-height:none"><table class="data" id="tb-dumb"><thead><tr><th>Group</th><th class="num">Occupations</th><th class="num">Before, % a year</th><th class="num">After, % a year</th><th class="num">Change, pp</th><th class="num">Change vs all, pp</th></tr></thead><tbody></tbody></table></div>
+</div>
+
+<h2>Finer age groups</h2>
+<p>Table 11658 has only three age groups. SSB's table 14160 splits employees into seven, including under 25 and 25–29, but only from 2021 and only for two-digit occupations (38 groups). Here each two-digit occupation gets the employment-weighted average complementarity (or exposure) of its four-digit occupations, and the 38 are split into fifths of 2022 employment, so the groups are coarser than above. Cells show the change in employees from the year to 2022 Q3 to the latest four quarters; the colour shows the gap to all occupations in the same age group. The grouping follows the choice above.</p>
+<div class="viz">
+  <div class="table-wrap" style="max-height:none;margin-top:0"><table class="data heat" id="tb-age"><thead></thead><tbody></tbody></table></div>
+  <div class="legend small" style="margin-top:8px"><span><i class="dot" style="background:var(--neg)"></i>below all occupations, same age</span><span><i class="dot" style="background:var(--pos)"></i>above</span></div>
+  <div class="controls" style="margin-top:14px">
+    <span class="ctl-label">Age</span>
+    <div class="seg" id="c-age2"><button data-v="999A" aria-pressed="false">All</button><button data-v="-24" aria-pressed="true">&lt;25</button><button data-v="25-29" aria-pressed="false">25–29</button><button data-v="30-44" aria-pressed="false">30–44</button><button data-v="45-54" aria-pressed="false">45–54</button><button data-v="55-64" aria-pressed="false">55–64</button><button data-v="65+" aria-pressed="false">65+</button></div>
+  </div>
+  <div class="chart" id="ch-age2"></div>
+  <div class="legend" id="lg-age2"></div>
+</div>
+<h3 style="margin-top:1.4rem">Largest changes for workers under 25</h3>
+<p class="small muted">Two-digit occupations with at least 1,000 employees under 25 in 2022; change from the year to 2022 Q3 to the latest four quarters.</p>
+<div class="two">
+  <div><table class="data" id="tb-y-down"><thead><tr><th>Fell most</th><th class="num">Group</th><th class="num">Under 25</th><th class="num">All ages</th></tr></thead><tbody></tbody></table></div>
+  <div><table class="data" id="tb-y-up"><thead><tr><th>Rose most</th><th class="num">Group</th><th class="num">Under 25</th><th class="num">All ages</th></tr></thead><tbody></tbody></table></div>
+</div>
+
+<h2>Exposure and complementarity</h2>
+<p>The same comparison for the four groups used in my <a href="research.html#ai-reallocation">job market paper</a>: AI exposure (DAIOE) above or below the median occupation, crossed with task complementarity above or below the median. High exposure with low complementarity is where AI is most likely to substitute for workers; high exposure with high complementarity is where it is more likely to support them.</p>
+<div class="viz">
+  <div class="chart" id="ch-quad"></div>
+  <div class="legend" id="lg-quad"></div>
+</div>
+
+<h2>Earnings</h2>
+<p>Employee-weighted average of the occupations' median monthly earnings by group (as chosen above), as a four-quarter average relative to the year to the third quarter of 2022. Earnings include bonuses and irregular pay; nominal kroner.</p>
+<div class="viz">
+  <div class="chart" id="ch-wage"></div>
+  <div class="legend" id="lg-wage"></div>
+</div>
+
+<h2>Updated exposure measures</h2>
+<p>The paper's DAIOE series runs to 2024. Here it is extended to 2025 and, provisionally, to 2026, with the same rule as the 2024 step: each AI application's subindex grows with the best benchmark result to date, using the Papers with Code archive (results up to July 2025) and Epoch AI's benchmarking data (dated by model release). The chart shows average exposure of Norwegian employment (2022 weights). 2025 and 2026 are provisional, and 2026 uses results released so far this year.</p>
+<div class="viz">
+  <div class="chart" id="ch-years"></div>
+  <div class="legend"><span><span class="sw" style="background:var(--s4)"></span>DAIOE (published series, extended)</span><span><span class="sw" style="background:var(--q1)"></span>C-DAIOE</span><span><span class="sw" style="background:repeating-linear-gradient(90deg,var(--ink-3) 0 4px,transparent 4px 7px)"></span>provisional</span></div>
+  <div class="table-wrap" style="max-height:none"><table class="data" id="tb-apps"><thead><tr><th>Application</th><th class="num">2025 growth factor</th><th class="num">Benchmarks</th><th class="num">2026 growth factor</th><th class="num">Benchmarks</th></tr></thead><tbody></tbody></table></div>
+  <p class="small muted" style="margin:8px 0 0">A factor of 1.00 with no benchmarks means no new results were available, so the subindex is held at the previous year's level. No current benchmark covers translation, Go, or (in 2026) images and speech, so the 2026 value understates progress in those applications.</p>
+</div>
+
+<h2>Are jobs changing in ways that matter for AI?</h2>
+<p>O*NET re-rates the abilities, tasks and work context of a share of occupations in every release. Holding the AI frontier fixed at 2025, the chart recomputes exposure with each O*NET release from 19.0 (2014) to 31.0 (2026). A rising line means that occupations, as O*NET describes them, have moved towards the abilities and tasks where AI has advanced; a falling line means the opposite. Ability-only DAIOE uses the ability profile alone; C-DAIOE also uses the tasks and their complementarity. Both are indexed to the paper's release (24.3 = 100) and averaged over Norwegian employment.</p>
+<div class="viz">
+  <div class="chart" id="ch-rel"></div>
+  <div class="legend"><span><span class="sw" style="background:var(--q1)"></span>C-DAIOE</span><span><span class="sw" style="background:var(--s4)"></span>Ability-only DAIOE</span></div>
+  <p class="small muted" style="margin:8px 0 0">Release 26.0 moved O*NET to the 2019 occupation taxonomy; its occupations are mapped back to the 2010 codes with O*NET's crosswalk, so part of the step at 26.0 reflects new and merged occupations rather than re-rated ones.</p>
+</div>
+<h3 style="margin-top:1.4rem">Largest changes between the paper's O*NET release (24.3) and the latest (31.0)</h3>
+<p class="small muted">C-DAIOE at the 2025 AI frontier; occupations with at least 1,000 employees in Norway in 2022. "Re-rated" is the share of the occupation's O*NET codes whose ability ratings were collected after release 24.3.</p>
+<div class="two">
+  <div><table class="data" id="tb-up"><thead><tr><th>Moved towards AI</th><th class="num">24.3</th><th class="num">31.0</th><th class="num">Re-rated</th></tr></thead><tbody></tbody></table></div>
+  <div><table class="data" id="tb-down"><thead><tr><th>Moved away from AI</th><th class="num">24.3</th><th class="num">31.0</th><th class="num">Re-rated</th></tr></thead><tbody></tbody></table></div>
+</div>
+
+<h2>Which abilities and skills is employment moving towards?</h2>
+<p>A first look at the skill set of Norwegian employment. Each occupation keeps its O*NET profile (release 24.3, the paper's), and each of O*NET's 52 abilities and 35 skills gets the employment-weighted average importance across occupations every quarter. When employment shifts towards occupations where an ability matters more, its weighted importance rises. This captures shifts between occupations only; changes in what each job requires are in the O*NET-release section above. The horizontal axis is how much the ability is exposed to AI at the 2025 frontier (the weight it carries in DAIOE, scaled 0–100).</p>
+<div class="viz">
+  <div class="controls">
+    <span class="ctl-label">Show</span>
+    <div class="seg" id="c-skv"><button data-v="post" aria-pressed="true">Growth after ChatGPT</button><button data-v="diff" aria-pressed="false">After minus before</button></div>
+    <span class="ctl-label">Age</span>
+    <div class="seg" id="c-ska"><button data-v="999D" aria-pressed="true">All</button><button data-v="0-39" aria-pressed="false">Under 40</button></div>
+  </div>
+  <div class="chart" id="ch-sk"></div>
+  <div class="legend" id="lg-sk"></div>
+  <p class="small muted" id="sk-note" style="margin:8px 0 0"></p>
+</div>
+<div class="viz" style="margin-top:16px">
+  <div class="chart" id="ch-sk2"></div>
+  <div class="legend" id="lg-sk2"></div>
+  <div class="controls" style="margin-top:12px">
+    <span class="ctl-label">Table</span>
+    <div class="seg" id="c-skt"><button data-v="abilities" aria-pressed="true">Abilities</button><button data-v="skills" aria-pressed="false">Skills</button></div>
+  </div>
+  <div class="table-wrap"><table class="data" id="tb-sk"><thead><tr><th data-k="name">Ability or skill</th><th class="num" data-k="ai">AI exposure</th><th class="num" data-k="level">Importance, 2022</th><th class="num" data-k="pre">Before, % a year</th><th class="num" data-k="post">After, % a year</th><th class="num" data-k="diff">Change, pp</th></tr></thead><tbody></tbody></table></div>
+</div>
+
+<h2>Look up an occupation</h2>
+<div class="viz">
+  <div class="controls">
+    <input type="search" id="occ-q" list="occ-list" placeholder="Occupation or STYRK/ISCO code, e.g. 2512 or economists" aria-label="Occupation" autocomplete="off">
+    <datalist id="occ-list"></datalist>
+  </div>
+  <div id="occ-out" class="small muted">Type an occupation to see its exposure scores, its employees and earnings since 2016, and how its O*NET profile has changed.</div>
+</div>
+
+<h2>How it is built</h2>
+<p class="caveat"><b>What this is not.</b> The groups differ in many ways besides AI exposure. The most exposed occupations are office, finance and IT jobs, which are also sensitive to interest rates, and the post-ChatGPT period coincides with the rise in interest rates from 2022 and the end of the pandemic recovery. A gap between groups is a pattern to explain, not an effect of AI.</p>
+<p class="small muted"><b>Employment and earnings.</b> SSB <a href="https://www.ssb.no/statbank/table/11658/">table 11658</a>: employees (lønnstakere), all sexes, by four-digit STYRK-08 occupation and age, and median monthly earnings, quarterly from 2016, from the a-ordningen register. STYRK-08 equals ISCO-08 at four digits. The page uses the balanced panel of occupations with counts in every quarter and age group, which covers the share of employees shown above; SSB rounds counts of one and two. Self-employed workers are not in the table. Groups are fixed by the complementarity index, the 2025 DAIOE scores and 2022 employment, so they do not move when new quarters arrive.</p>
+<p class="small muted"><b>Finer ages and skill set.</b> SSB <a href="https://www.ssb.no/statbank/table/14160/">table 14160</a> (employees by two-digit occupation and seven age groups, quarterly from 2021). The skill-set measure uses O*NET 24.3 importance ratings mapped to ISCO-08 through the paper's SOC crosswalk and SSB employment from table 11658; growth rates are between four-quarter averages, as above.</p>
+<p class="small muted"><b>Exposure.</b> DAIOE (Engberg et al.) links AI benchmark progress in nine applications to the abilities each occupation requires. C-DAIOE, from my paper, reallocates each occupation's ability exposure across its O*NET tasks and discounts it where the task context makes AI more likely to complement than replace the worker. 2010–2024 are the values used in the paper. The 2025 and 2026 extension and the O*NET-release comparison are new on this page and are not in the paper; the scripts are <code>extend_daioe_frontier.py</code>, <code>prepare_onet_vintages.py</code> and <code>run_cdaioe_vintage.py</code>. In the O*NET-release comparison the AI progress series, the composite weights, the yearly scale and the three cross-occupation normalising constants are all held at the paper's values, so only the occupation descriptions change.</p>
+<p class="small muted"><b>Updates.</b> A scheduled job in this site's repository queries SSB every week and rebuilds <a href="data/ai_jobs.json">data/ai_jobs.json</a> when a new quarter appears. The exposure scores (<a href="data/exposure_scores.json">data/exposure_scores.json</a>) are rebuilt by hand when new benchmark results or a new O*NET release come out, about once a year. Sources: Statistics Norway; O*NET 19.0–31.0 (U.S. Department of Labor, CC BY 4.0); Epoch AI, Capabilities and benchmarking (CC BY 4.0); Papers with Code archive (CC BY-SA 4.0).</p>
+
+</main>
+<footer>
+  <div class="wrap">
+    <div>&copy; 2026 Sebastian Frånlund Johansson &middot; BI Norwegian Business School, Nydalsveien 37, N-0484 Oslo</div>
+    <div><a href="mailto:Sebastian.s.johansson@bi.no">Sebastian.s.johansson@bi.no</a> &middot; <a href="https://github.com/Seb-f-Johansson">GitHub</a></div>
+  </div>
+</footer>
+<script src="assets/site.js"></script>
+<script src="assets/jobs.js"></script>
+</body>
+</html>

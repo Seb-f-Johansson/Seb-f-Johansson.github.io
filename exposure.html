@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>AI Exposure Explorer — Sebastian Frånlund Johansson</title>
-<meta name="description" content="Interactive scatter of AI exposure (DAIOE, extended to 2024) against task complementarity for 422 ISCO-08 occupations.">
+<meta name="description" content="Interactive scatter of AI exposure (DAIOE and C-DAIOE, 2022-2026) against task complementarity for 422 ISCO-08 occupations.">
 <meta property="og:title" content="AI Exposure Explorer — Sebastian Frånlund Johansson">
-<meta property="og:description" content="Interactive scatter of AI exposure (DAIOE, extended to 2024) against task complementarity for 422 ISCO-08 occupations.">
+<meta property="og:description" content="Interactive scatter of AI exposure (DAIOE and C-DAIOE, 2022-2026) against task complementarity for 422 ISCO-08 occupations.">
 <meta property="og:image" content="assets/photo.webp">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="assets/style.css">
@@ -24,6 +24,7 @@ try { var t = localStorage.getItem('theme'); if (t) document.documentElement.set
       <a href="index.html">Home</a>
       <a href="research.html">Research</a>
       <a href="exposure.html" aria-current="page">AI Exposure</a>
+      <a href="jobs.html">AI &amp; Jobs</a>
       <a href="teaching.html">Teaching</a>
       <a href="cv.html">CV</a>
     </nav>
@@ -40,7 +41,7 @@ try { var t = localStorage.getItem('theme'); if (t) document.documentElement.set
 <main class="wrap">
 
 <h1>AI exposure explorer</h1>
-<p>Each point is one of 422 four-digit ISCO-08 occupations. The horizontal axis is the Dynamic AI Occupational Exposure index (DAIOE, all applications, extended to 2024); the vertical axis is the task-complementarity index, which measures how much the occupation's tasks sit in contexts where human input remains valuable. Dashed lines mark the medians (35.0 and 0.32). The complementarity-adjusted index C-DAIOE used in <a href="research.html#ai-reallocation">my job market paper</a> discounts exposure by complementarity, so the occupations where AI is most likely to substitute for labor are those in the lower-right quadrant.</p>
+<p>Each point is one of 422 four-digit ISCO-08 occupations. The horizontal axis is the Dynamic AI Occupational Exposure index (DAIOE, all applications); the vertical axis is the task-complementarity index, which measures how much the occupation's tasks sit in contexts where human input remains valuable. Dashed lines mark the medians. The year menu switches between the paper's 2024 values and the provisional 2025 and 2026 updates described on the <a href="jobs.html">AI and Norwegian jobs</a> page. The complementarity-adjusted index C-DAIOE used in <a href="research.html#ai-reallocation">my job market paper</a> discounts exposure by complementarity, so the occupations where AI is most likely to substitute for labor are those in the lower-right quadrant.</p>
 
 <div class="viz" id="viz">
   <div class="controls">
@@ -56,6 +57,13 @@ try { var t = localStorage.getItem('theme'); if (t) document.documentElement.set
       <option value="7">7 Craft and related trades workers</option>
       <option value="8">8 Plant and machine operators and assemblers</option>
       <option value="9">9 Elementary occupations</option>
+    </select>
+    <select id="year" aria-label="Year">
+      <option value="2024" selected>2024 (paper)</option>
+      <option value="2025">2025 (provisional)</option>
+      <option value="2026">2026 (provisional, year to date)</option>
+      <option value="2023">2023</option>
+      <option value="2022">2022</option>
     </select>
     <select id="xvar" aria-label="Horizontal axis">
       <option value="daioe">x: DAIOE (exposure)</option>
@@ -83,7 +91,7 @@ try { var t = localStorage.getItem('theme'); if (t) document.documentElement.set
 </div>
 
 <h2>About the data</h2>
-<p class="small muted">DAIOE is the Dynamic AI Occupational Exposure index of Engberg, Görg, Lodefalk et al., which combines AI benchmark progress across applications with the abilities required in each occupation. The published series ends in 2023; the 2024 values extend it using benchmark progress from the Papers with Code archive, as described in the paper's appendix. The complementarity index follows the task-context approach of Pizzinelli et al. (2023). Scores are shown for the 422 occupations with Norwegian employment in the paper's sample; armed forces occupations are excluded. The underlying file is <a href="data/exposure_2024.json">data/exposure_2024.json</a>.</p>
+<p class="small muted">DAIOE is the Dynamic AI Occupational Exposure index of Engberg, Görg, Lodefalk et al., which combines AI benchmark progress across applications with the abilities required in each occupation. The published series ends in 2023; the 2024 values extend it using benchmark progress from the Papers with Code archive, as described in the paper's appendix, and 2025 and 2026 extend it further with the same rule and Epoch AI's benchmarking data (provisional, not in the paper). The complementarity index follows the task-context approach of Pizzinelli et al. (2023). Scores are shown for the 422 occupations with Norwegian employment in the paper's sample; armed forces occupations are excluded. The underlying file is <a href="data/exposure_scores.json">data/exposure_scores.json</a> (the paper's 2024 values alone are in <a href="data/exposure_2024.json">data/exposure_2024.json</a>).</p>
 
 </main>
 <footer>

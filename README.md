@@ -5,11 +5,17 @@ Static site for GitHub Pages. No build step, no framework: plain HTML, one CSS f
 ```
 index.html        Home: bio, research cards, explorer teaser, live GitHub repositories
 research.html     Papers with expandable abstracts and BibTeX (show / copy)
-exposure.html     AI exposure explorer (SVG scatter, search, major-group filter, table view)
+exposure.html     AI exposure explorer (SVG scatter, search, major-group filter, year menu, table view)
+jobs.html         AI and Norwegian jobs: SSB employment and earnings by exposure group, updated measures
 teaching.html     Courses and the notes/solution-set archive (links to Dropbox)
 cv.html           CV summary + PDF
 assets/           style.css, site.js (theme, nav, GitHub API), exposure.js (chart), photo, favicon
-data/exposure_2024.json   422 ISCO-08 occupations: DAIOE 2024, C-DAIOE, complementarity
+data/exposure_2024.json   422 ISCO-08 occupations: DAIOE 2024, C-DAIOE, complementarity (paper values)
+data/exposure_scores.json DAIOE and C-DAIOE 2010-2026 (2025-26 provisional), C-DAIOE by O*NET release
+data/ai_jobs.json         SSB tables 11658 and 14160 aggregates; rebuilt weekly by the workflow below
+data/skill_profiles.json  O*NET 24.3 ability and skill importance by ISCO-08, ability AI exposure
+scripts/update_ai_jobs.py rebuilds data/ai_jobs.json from SSB (standard library only)
+.github/workflows/update-ai-jobs.yml   weekly schedule (Mondays 06:17 UTC) + manual run
 cv/Sebastian_Johansson_CV.pdf
 .nojekyll         tells GitHub Pages to serve the files as they are
 ```
@@ -49,3 +55,14 @@ Later changes: edit the files, `git commit -am "…"`, `git push`. The site upda
 - Custom domain: add a `CNAME` file containing the domain and set the DNS as described in GitHub's Pages docs.
 - Google Scholar / LinkedIn / ORCID buttons: copy one of the `<li>` entries in the `.links` list on `index.html`.
 - The old Google Site can be left up with a one-line pointer to the new address, or deleted once the new site is live.
+
+## Automatic updates
+
+`.github/workflows/update-ai-jobs.yml` runs `scripts/update_ai_jobs.py` every Monday. It commits
+`data/ai_jobs.json` when SSB has published new data, and writes the month of the last check to
+`data/last_checked.txt` (one small commit a month, so GitHub does not pause the schedule).
+To run it by hand: repository → Actions → *Update AI and jobs data* → *Run workflow*.
+
+`data/exposure_scores.json` and `data/skill_profiles.json` are not rebuilt here. It comes from the research project
+(`code/python/build_website_ai_data.py`, after `extend_daioe_frontier.py`,
+`prepare_onet_vintages.py` and `run_cdaioe_vintage.py`) and is replaced by hand about once a year.
