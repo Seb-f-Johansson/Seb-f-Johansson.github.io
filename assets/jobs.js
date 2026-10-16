@@ -440,6 +440,180 @@
       });
     });
   }
+  /* ---------- other countries (data/countries.json) ---------- */
+  var CT, xs = { c: 'SE', measure: 'comp', age: 'all', geo: 'EU27_2020' }, cs = { measure: 'comp', v: 'diff' };
+  var CCOL = { NO: 'var(--q2)', SE: 'var(--q3)', EU: 'var(--q1)', US: 'var(--ink-2)' };
+  var CNAME = { NO: 'Norway', SE: 'Sweden', EU: 'European Union', US: 'United States' };
+  function gname(m, g) { return (GN[m] || {})[g] || String(g); }
+  function plabel(p, freq) {
+    if (freq !== 'monthly') return p;
+    return ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][+p.slice(5) - 1] + ' ' + p.slice(0, 4);
+  }
+  function cblock() { var c = CT.countries[xs.c]; return xs.c === 'EU' ? c.geos[xs.geo] : c; }
+  function dumbbellChart(host, rows, al) {
+    host.innerHTML = '';
+    var W = 900, rh = 34, M = { t: 10, r: 30, b: 34, l: 205 }, H = M.t + M.b + rows.length * rh;
+    var vals = [0]; rows.forEach(function (r) { if (r.pre != null) vals.push(r.pre); if (r.post != null) vals.push(r.post); });
+    var x0 = Math.min.apply(null, vals), x1 = Math.max.apply(null, vals), p = (x1 - x0) * 0.08 || 1; x0 -= p; x1 += p;
+    var sx = function (v) { return M.l + (v - x0) / (x1 - x0) * (W - M.l - M.r); };
+    var svg = el('svg', { viewBox: '0 0 ' + W + ' ' + H, role: 'img', 'aria-label': 'Annual employment growth before and after ChatGPT by group' });
+    host.appendChild(svg);
+    var ax = el('g', { 'class': 'axis' }, svg);
+    niceTicks(x0, x1, 6).forEach(function (t) {
+      el('line', { x1: sx(t), x2: sx(t), y1: H - M.b, y2: H - M.b + 4 }, ax);
+      var tx = el('text', { x: sx(t), y: H - M.b + 17, 'text-anchor': 'middle' }, ax); tx.textContent = (+t.toFixed(2)) + '%';
+    });
+    el('path', { d: 'M' + M.l + ',' + (H - M.b) + 'H' + (W - M.r), fill: 'none' }, ax);
+    el('line', { x1: sx(0), x2: sx(0), y1: M.t, y2: H - M.b }, svg, 'stroke:var(--line)');
+    if (al && al.post != null) el('line', { x1: sx(al.post), x2: sx(al.post), y1: M.t, y2: H - M.b }, svg, 'stroke:var(--ink-3);stroke-dasharray:3 3');
+    rows.forEach(function (r, i) {
+      var y = M.t + rh * i + rh / 2;
+      var lt = el('text', { x: M.l - 10, y: y + 4, 'text-anchor': 'end' }, svg, 'fill:var(--ink-2);font-size:12px' + (r.isAll ? ';font-weight:600' : '')); lt.textContent = r.name;
+      if (r.pre != null && r.post != null) el('line', { x1: sx(r.pre), x2: sx(r.post), y1: y, y2: y }, svg, 'stroke:var(--ink-3);stroke-width:2');
+      if (r.pre != null) el('circle', { cx: sx(r.pre), cy: y, r: 5.5 }, svg, 'fill:var(--card);stroke:var(--ink-3);stroke-width:2');
+      if (r.post != null) el('circle', { cx: sx(r.post), cy: y, r: 6 }, svg, 'fill:' + (r.isAll ? 'var(--ink-2)' : 'var(--accent)') + ';stroke:var(--card);stroke-width:1.5');
+    });
+  }
+  function drawCountry() {
+    var c = CT.countries[xs.c], b = cblock(); if (!c || !b) return;
+    var ages = c.ages.map(function (a) { return a.code; }); if (ages.indexOf(xs.age) < 0) xs.age = 'all';
+    var monthly = c.freq === 'monthly', w = monthly ? 12 : 1;
+    document.getElementById('x-geo-wrap').hidden = xs.c !== 'EU';
+    document.getElementById('x-age-wrap').hidden = ages.length < 2;
+    document.getElementById('x-age-sec').hidden = ages.length < 2;
+    document.getElementById('x-age').innerHTML = c.ages.map(function (a) { return '<button type="button" data-v="' + a.code + '" aria-pressed="' + (a.code === xs.age) + '">' + esc(a.label.replace(' and over', '+')) + '</button>'; }).join('');
+    document.querySelectorAll('#x-age button').forEach(function (bt) { bt.addEventListener('click', function () { xs.age = bt.dataset.v; drawCountry(); }); });
+    var baseL = monthly ? 'the twelve months to ' + plabel(c.base, 'monthly') : c.base, lastL = plabel(c.last, c.freq);
+    document.getElementById('x-intro').textContent = c.label + ': ' + c.source + '. Occupations: ' + c.detail + '.' + (c.note ? ' ' + c.note : '');
+    document.getElementById('x-text').textContent = 'Employees by group, ' + (monthly ? 'as twelve-month averages, ' : 'annual, ') + 'relative to ' + baseL + ' (= 100), the last ' + (monthly ? 'twelve months' : 'year') + ' before ChatGPT. Groups use the Norwegian cut-offs, so the same scores fall in the same group as on the Norway tab.';
+    document.getElementById('x-gtext').textContent = 'Average annual growth before (' + plabel(c.pre_from, c.freq) + ' to ' + plabel(c.base, c.freq) + ') and after (' + plabel(c.base, c.freq) + ' to ' + lastL + ')' + (monthly ? ', between twelve-month averages.' : '.') + (xs.c === 'SE' ? ' The pre-period starts in 2019 because the register series changes definition before that.' : '') + (xs.c === 'EU' ? ' The EU Labour Force Survey was redesigned in 2021, inside the pre-period.' : '');
+    var gs = b.groups[xs.measure], al = b.all[xs.age], g1 = gs[0].emp.all, alA = b.all.all;
+    var gap = (g1.post - g1.pre) - (alA.post - alA.pre);
+    document.getElementById('x-stats').innerHTML =
+      '<div class="stat"><div class="v">' + esc(lastL) + '</div><div class="l">Latest ' + (monthly ? 'month' : 'year') + ' in the data</div></div>' +
+      '<div class="stat"><div class="v">' + (b.coverage == null ? '–' : Math.round(100 * b.coverage) + '%') + '</div><div class="l">Share of ' + esc(c.unit.replace(' (thousands)', '')) + ' in scored occupations</div></div>' +
+      '<div class="stat"><div class="v">' + sgn(gap) + ' pp</div><div class="l">Change in annual employment growth after ChatGPT, lowest-complementarity group relative to all occupations</div></div>' +
+      '<div class="stat"><div class="v">' + esc(c.detail.split(' ')[0]) + '</div><div class="l">Occupation detail (' + esc(c.freq) + ' data)</div></div>';
+    document.getElementById('x-stamp').textContent = 'Data rebuilt ' + CT.built + '.' + (c.missing && c.missing.length ? ' Missing months: ' + c.missing.map(function (p) { return plabel(p, 'monthly'); }).join(', ') + '.' : '');
+    var P = c.periods, start = w - 1, qs = P.slice(start);
+    var series = gs.map(function (g) { return { name: gname(xs.measure, g.group), color: 'var(--s' + g.group + ')', values: g.emp[xs.age].index.slice(start), width: 2.2 }; });
+    series.push({ name: 'All occupations', short: 'All', color: 'var(--ink-2)', dash: '6 4', width: 1.6, values: al.index.slice(start) });
+    var bi = qs.indexOf(c.base), frac = (bi + (monthly ? 1 : 0.92)) / (qs.length - 1);
+    var ageL = c.ages.filter(function (a) { return a.code === xs.age; })[0].label.toLowerCase();
+    lineChart(document.getElementById('x-chart'), {
+      x: qs, series: series, base: 100, xfmt: function (p) { return plabel(p, c.freq); },
+      xtick: monthly ? function (p) { return p.slice(5) === '01' ? p.slice(0, 4) : null; } : function (p) { return p; },
+      ytitle: 'Employees, ' + ageL + ', ' + (monthly ? 'twelve-month average, ' : '') + baseL + ' = 100', marker: 0, markerFrac: frac, markerText: 'ChatGPT'
+    });
+    legend('x-legend', series.map(function (s) { return { name: s.name.replace(/^(\d)$/, 'Group $1'), color: s.color, dash: !!s.dash }; }));
+    var rows = gs.map(function (g) { return { name: gname(xs.measure, g.group), n: g.n_occ, pre: g.emp[xs.age].pre, post: g.emp[xs.age].post }; });
+    var arow = { name: 'All occupations', isAll: true, n: gs.reduce(function (s, g) { return s + g.n_occ; }, 0), pre: al.pre, post: al.post };
+    dumbbellChart(document.getElementById('x-dumb'), rows.concat([arow]), arow);
+    var ad = al.post - al.pre;
+    document.querySelector('#x-table tbody').innerHTML = rows.concat([arow]).map(function (r) {
+      var d = r.post - r.pre;
+      return '<tr><td>' + esc(r.name) + '</td><td class="num">' + r.n + '</td><td class="num">' + f2(r.pre) + '</td><td class="num">' + f2(r.post) + '</td><td class="num">' + sgn(d, 2) + '</td><td class="num">' + (r.isAll ? '' : sgn(d - ad, 2)) + '</td></tr>';
+    }).join('');
+    if (ages.length > 1) {
+      document.querySelector('#x-heat thead').innerHTML = '<tr><th>Group</th>' + c.ages.map(function (a) { return '<th class="num">' + esc(a.label) + '</th>'; }).join('') + '</tr>';
+      document.querySelector('#x-heat tbody').innerHTML = gs.map(function (g) {
+        return '<tr><td>' + esc(gname(xs.measure, g.group)) + '</td>' + ages.map(function (a) {
+          var v = g.emp[a].change, a0 = b.all[a].change;
+          return '<td class="num cell" style="' + heat(v, a0) + '">' + sgn(v) + '%</td>';
+        }).join('') + '</tr>';
+      }).join('') + '<tr><td><b>All occupations</b></td>' + ages.map(function (a) { return '<td class="num"><b>' + sgn(b.all[a].change) + '%</b></td>'; }).join('') + '</tr>';
+    }
+    document.getElementById('x-caveat').innerHTML = '<b>What this is not.</b> As for Norway, the groups differ in many ways besides AI, and the period after ChatGPT coincides with higher interest rates and the end of the pandemic recovery. ' +
+      (xs.c === 'US' ? 'The CPS is a household survey of about 60,000 households a month, so small groups are noisy even as twelve-month averages.' : xs.c === 'EU' ? 'The LFS is a survey; two-digit groups are coarse, and small countries have suppressed cells.' : 'Annual register data: the first full year after ChatGPT is 2023.');
+  }
+  function cmpRows(m) {
+    var out = [];
+    var pp = function (e) { return { pre: e.growth_pre, post: e.growth_post }; };
+    var no = { key: 'NO', groups: J.groups[m].map(function (g) { return pp(g.emp['999D']); }), all: pp(J.all.emp['999D']),
+               young: J.age_detail.groups[m].map(function (g) { return g.emp['-24'].change; }), yall: J.age_detail.all['-24'].change };
+    out.push(no);
+    ['SE', 'EU', 'US'].forEach(function (k) {
+      var c = CT.countries[k]; if (!c) return; var b = k === 'EU' ? c.geos.EU27_2020 : c;
+      var hasY = c.ages.some(function (a) { return a.code === '-24'; });
+      out.push({ key: k, groups: b.groups[m].map(function (g) { return g.emp.all; }), all: b.all.all,
+                 young: hasY ? b.groups[m].map(function (g) { return g.emp['-24'].change; }) : null, yall: hasY ? b.all['-24'].change : null });
+    });
+    return out;
+  }
+  function drawCompare() {
+    var m = cs.measure, rows = cmpRows(m), v = cs.v;
+    var val = function (r, i) { var g = r.groups[i]; if (!g || g.post == null || g.pre == null) return null; return v === 'diff' ? (g.post - g.pre) - (r.all.post - r.all.pre) : g.post - r.all.post; };
+    var host = document.getElementById('cmp-chart'); host.innerHTML = '';
+    var W = 900, rh = 46, M = { t: 14, r: 30, b: 40, l: 205 }, H = M.t + M.b + 5 * rh;
+    var vals = [0]; rows.forEach(function (r) { for (var i = 0; i < 5; i++) { var x = val(r, i); if (x != null) vals.push(x); } });
+    var x0 = Math.min.apply(null, vals), x1 = Math.max.apply(null, vals), p = (x1 - x0) * 0.1 || 1; x0 -= p; x1 += p;
+    var sx = function (x) { return M.l + (x - x0) / (x1 - x0) * (W - M.l - M.r); };
+    var svg = el('svg', { viewBox: '0 0 ' + W + ' ' + H, role: 'img', 'aria-label': 'Change in employment growth by group and country' }); host.appendChild(svg);
+    var tip = document.createElement('div'); tip.className = 'tooltip'; host.appendChild(tip);
+    var ax = el('g', { 'class': 'axis' }, svg);
+    niceTicks(x0, x1, 6).forEach(function (t) { el('line', { x1: sx(t), x2: sx(t), y1: H - M.b, y2: H - M.b + 4 }, ax); var tx = el('text', { x: sx(t), y: H - M.b + 17, 'text-anchor': 'middle' }, ax); tx.textContent = (t > 0 ? '+' : '') + (+t.toFixed(2)); });
+    el('path', { d: 'M' + M.l + ',' + (H - M.b) + 'H' + (W - M.r), fill: 'none' }, ax);
+    el('line', { x1: sx(0), x2: sx(0), y1: M.t, y2: H - M.b }, svg, 'stroke:var(--ink-3)');
+    var xt = el('text', { 'class': 'axis-title', x: (M.l + W - M.r) / 2, y: H - 6, 'text-anchor': 'middle' }, svg);
+    xt.textContent = v === 'diff' ? 'Change in annual growth after ChatGPT, relative to all occupations (pp)' : 'Annual growth after ChatGPT minus all occupations (pp)';
+    for (var i = 0; i < 5; i++) {
+      var y = M.t + rh * i + rh / 2;
+      var lt = el('text', { x: M.l - 10, y: y + 4, 'text-anchor': 'end' }, svg, 'fill:var(--ink-2);font-size:12px'); lt.textContent = gname(m, i + 1);
+      rows.forEach(function (r, k) {
+        var x = val(r, i); if (x == null) return;
+        var yy = y + (k - 1.5) * 7;
+        var cc = el('circle', { cx: sx(x), cy: yy, r: 6 }, svg, 'fill:' + CCOL[r.key] + ';stroke:var(--card);stroke-width:1.5');
+        (function (r, x, i) {
+          cc.addEventListener('mousemove', function (ev) {
+            tip.innerHTML = '<b>' + CNAME[r.key] + '</b>' + esc(gname(m, i + 1)) + ': ' + sgn(x, 2) + ' pp';
+            tip.style.display = 'block'; var hr = host.getBoundingClientRect();
+            tip.style.left = Math.min(ev.clientX - hr.left + 14, hr.width - 220) + 'px'; tip.style.top = (ev.clientY - hr.top + 10) + 'px';
+          });
+          cc.addEventListener('mouseleave', function () { tip.style.display = 'none'; });
+        })(r, x, i);
+      });
+    }
+    legend('cmp-legend', rows.map(function (r) { return { name: CNAME[r.key], color: CCOL[r.key] }; }));
+    document.querySelector('#cmp-table thead').innerHTML = '<tr><th>Country</th>' + [1, 2, 3, 4, 5].map(function (g) { return '<th class="num">' + esc(gname(m, g)) + '</th>'; }).join('') + '</tr>';
+    document.querySelector('#cmp-table tbody').innerHTML = rows.map(function (r) {
+      return '<tr><td>' + CNAME[r.key] + '</td>' + [0, 1, 2, 3, 4].map(function (i) { return '<td class="num">' + sgn(val(r, i), 2) + '</td>'; }).join('') + '</tr>';
+    }).join('');
+    document.querySelector('#cmp-young thead').innerHTML = '<tr><th>Country</th>' + [1, 2, 3, 4, 5].map(function (g) { return '<th class="num">' + esc(gname(m, g)) + '</th>'; }).join('') + '<th class="num">All, % change</th></tr>';
+    document.querySelector('#cmp-young tbody').innerHTML = rows.map(function (r) {
+      if (!r.young) return '<tr><td>' + CNAME[r.key] + '</td><td colspan="6" class="muted">no age split at this level</td></tr>';
+      return '<tr><td>' + CNAME[r.key] + '</td>' + r.young.map(function (x) { return '<td class="num cell" style="' + heat(x, r.yall) + '">' + sgn(x == null ? null : x - r.yall) + '</td>'; }).join('') + '<td class="num">' + sgn(r.yall) + '%</td></tr>';
+    }).join('');
+    document.getElementById('cmp-cut').textContent = 'Cut-offs (highest score in each of the first four Norwegian groups): complementarity ' + CT.cutoffs.comp.join(', ') + '; DAIOE ' + CT.cutoffs.daioe.join(', ') + '.';
+  }
+  function showTab(k) {
+    document.querySelectorAll('#ctabs button').forEach(function (b) { b.setAttribute('aria-selected', b.dataset.c === k ? 'true' : 'false'); });
+    document.getElementById('tab-NO').hidden = k !== 'NO';
+    document.getElementById('tab-X').hidden = !(k === 'SE' || k === 'EU' || k === 'US');
+    document.getElementById('tab-CMP').hidden = k !== 'CMP';
+    if (!CT) return;
+    if (k === 'SE' || k === 'EU' || k === 'US') { xs.c = k; drawCountry(); }
+    if (k === 'CMP') drawCompare();
+  }
+  function wireCountries() {
+    document.querySelectorAll('#ctabs button').forEach(function (b) {
+      b.type = 'button';
+      b.addEventListener('click', function () { showTab(b.dataset.c); try { history.replaceState(null, '', '#' + b.dataset.c.toLowerCase()); } catch (e) {} });
+    });
+    var segs = [['x-measure', xs, 'measure', drawCountry], ['cmp-measure', cs, 'measure', drawCompare], ['cmp-v', cs, 'v', drawCompare]];
+    segs.forEach(function (sg) {
+      var box = document.getElementById(sg[0]);
+      box.querySelectorAll('button').forEach(function (b) {
+        b.type = 'button';
+        b.addEventListener('click', function () { sg[1][sg[2]] = b.dataset.v; box.querySelectorAll('button').forEach(function (x) { x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); }); sg[3](); });
+      });
+    });
+    var geo = document.getElementById('x-geo'), g = CT.countries.EU ? CT.countries.EU.geos : {};
+    geo.innerHTML = Object.keys(g).map(function (k) { return '<option value="' + k + '">' + esc(g[k].label) + '</option>'; }).join('');
+    geo.addEventListener('change', function () { xs.geo = geo.value; drawCountry(); });
+    var h = (location.hash || '').slice(1).toUpperCase();
+    if (['SE', 'EU', 'US', 'CMP'].indexOf(h) >= 0) showTab(h);
+  }
+
   function redraw() { drawQuint(); drawDumb(); drawAgeDetail(); drawQuad(); drawWage(); }
 
   Promise.all([fetch('data/ai_jobs.json').then(function (r) { return r.json(); }), fetch('data/exposure_scores.json').then(function (r) { return r.json(); })])
@@ -453,6 +627,8 @@
         th.addEventListener('click', function () { if (state.skSort === th.dataset.k) state.skDir *= -1; else { state.skSort = th.dataset.k; state.skDir = th.dataset.k === 'name' ? 1 : -1; } drawSkTable(); });
       });
       drawStats(); redraw(); drawYears(); drawRelease(); drawSkills(); wireOcc();
+      fetch('data/countries.json').then(function (r) { return r.json(); }).then(function (c) { CT = c; wireCountries(); })
+        .catch(function () { document.getElementById('ctabs').insertAdjacentHTML('afterend', '<p class="small muted">Country data could not be loaded.</p>'); });
     })
     .catch(function (e) {
       document.getElementById('ch-quint').innerHTML = '<div class="notice">Could not load the data files (' + esc(e.message || e) + ').</div>';
