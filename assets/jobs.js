@@ -204,9 +204,12 @@
   }
 
   function drawYears() {
-    var by = J.by_year, yrs = by.years.map(String), pf = by.years.indexOf(S.provisional_from) - 1;
+    // unweighted average across occupations (not country specific)
+    var codes = Object.keys(SC), mean = function (k, i) { var t = 0, n = 0; codes.forEach(function (c) { var v = SC[c][k][i]; if (v != null) { t += v; n++; } }); return n ? t / n : null; };
+    var by = { years: S.years, daioe: S.years.map(function (y, i) { return mean('daioe', i); }), cdaioe: S.years.map(function (y, i) { return mean('cdaioe', i); }) };
+    var yrs = by.years.map(String), pf = by.years.indexOf(S.provisional_from) - 1;
     lineChart(document.getElementById('ch-years'), {
-      x: yrs, xtick: function (y) { return +y % 2 === 0 ? y : null; }, ytitle: 'Average exposure of Norwegian employment (2022 weights)',
+      x: yrs, xtick: function (y) { return +y % 2 === 0 ? y : null; }, ytitle: 'Average exposure across occupations (unweighted)',
       series: [{ name: 'DAIOE', color: 'var(--s4)', values: by.daioe, dashFrom: pf, points: false, width: 2.4 },
                { name: 'C-DAIOE', color: 'var(--q1)', values: by.cdaioe, dashFrom: pf, width: 2.4 }],
       xfmt: function (y) { return y + (+y === S.ytd_year ? ' (year to date)' : +y >= S.provisional_from ? ' (provisional)' : ''); }, labelRoom: 90
@@ -219,7 +222,9 @@
   }
 
   function drawRelease() {
-    var br = J.by_release, b = br.releases.map(function (r) { return r.key; }).indexOf(S.paper_release);
+    var bal = Object.keys(SC).filter(function (c) { var s = SC[c]; return s.cdaioe_by_release.every(function (v) { return v != null; }) && s.daioe_by_release.every(function (v) { return v != null; }); });
+    var rmean = function (k) { return S.releases.map(function (r, i) { return bal.reduce(function (t, c) { return t + SC[c][k][i]; }, 0) / bal.length; }); };
+    var br = { releases: S.releases, cdaioe: rmean('cdaioe_by_release'), daioe: rmean('daioe_by_release') }, b = br.releases.map(function (r) { return r.key; }).indexOf(S.paper_release);
     var idx = function (a) { return a.map(function (v) { return 100 * v / a[b]; }); };
     lineChart(document.getElementById('ch-rel'), {
       x: br.releases.map(function (r) { return r.key; }), xtick: function (k) { return k; },
@@ -231,20 +236,20 @@
     });
     // tables of largest movers
     var rel = S.releases.map(function (r) { return r.key; }), i0 = rel.indexOf(S.paper_release), i1 = rel.length - 1;
-    var w22 = J.quarters.map(function (q, i) { return q.indexOf(J.weight_year) === 0 ? i : -1; }).filter(function (i) { return i >= 0; });
     var mv = [];
     Object.keys(SC).forEach(function (c) {
-      var o = J.occ[c], s = SC[c]; if (!o) return;
-      var e = avg(o.e, w22[0], w22[w22.length - 1]); if (e == null || e < 1000) return;
-      var a = s.cdaioe_by_release[i0], z = s.cdaioe_by_release[i1]; if (a == null || z == null) return;
-      mv.push({ c: c, t: o.t, a: a, z: z, d: z - a, r: s.share_rerated });
+      var s = SC[c], a = s.cdaioe_by_release[i0], z = s.cdaioe_by_release[i1]; if (a == null || z == null) return;
+      mv.push({ c: c, t: s.title, a: a, z: z, d: z - a, r: s.share_rerated });
     });
     mv.sort(function (p, q) { return q.d - p.d; });
-    var row = function (m) { return '<tr><td><a href="#occ" data-occ="' + m.c + '">' + m.c + '</a> ' + esc(m.t) + '</td><td class="num">' + f1(m.a) + '</td><td class="num">' + f1(m.z) + '</td><td class="num">' + (m.r == null ? '–' : Math.round(100 * m.r) + '%') + '</td></tr>'; };
+    var row = function (m) { return '<tr><td><a href="#exp" data-exq="' + m.c + '">' + m.c + '</a> ' + esc(m.t) + '</td><td class="num">' + f1(m.a) + '</td><td class="num">' + f1(m.z) + '</td><td class="num">' + (m.r == null ? '–' : Math.round(100 * m.r) + '%') + '</td></tr>'; };
     document.querySelector('#tb-up tbody').innerHTML = mv.slice(0, 10).map(row).join('');
     document.querySelector('#tb-down tbody').innerHTML = mv.slice(-10).reverse().map(row).join('');
-    document.querySelectorAll('[data-occ]').forEach(function (a) {
-      a.addEventListener('click', function (ev) { ev.preventDefault(); showOcc(a.dataset.occ); document.getElementById('occ-q').scrollIntoView({ behavior: 'smooth', block: 'center' }); });
+    document.querySelectorAll('[data-exq]').forEach(function (a) {
+      a.addEventListener('click', function (ev) {
+        ev.preventDefault(); var q = document.getElementById('q'); q.value = a.dataset.exq; q.dispatchEvent(new Event('input', { bubbles: true }));
+        document.getElementById('viz').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
     });
   }
 
