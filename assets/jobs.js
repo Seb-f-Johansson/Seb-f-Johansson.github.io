@@ -6,8 +6,8 @@
   var J, S, SC = {}, state = { measure: 'quad', age: '0-39', from: '2019K1', age2: '-24', skv: 'post', ska: '999D', skt: 'abilities', skSort: 'diff', skDir: 1 };
   var QNAME = { 1: 'High exposure, low complementarity', 2: 'High exposure, high complementarity', 3: 'Low exposure, high complementarity', 4: 'Low exposure, low complementarity' };
   /* Groups follow the paper: high/low relative to the unweighted occupation medians of 2024 DAIOE and task complementarity. */
-  var GN = { quad: QNAME, comp: { 1: 'Low complementarity', 2: 'High complementarity' }, daioe: { 1: 'Low exposure', 2: 'High exposure' } };
-  var GCOL = { quad: { 1: '--q1', 2: '--q2', 3: '--q3', 4: '--q4' }, comp: { 1: '--q1', 2: '--q3' }, daioe: { 1: '--q4', 2: '--q2' } };
+  var GN = { quad: QNAME, comp: { 1: 'Low complementarity', 2: 'High complementarity' }, cdaioe: { 1: 'Low exposure (C-DAIOE)', 2: 'High exposure (C-DAIOE)' } };
+  var GCOL = { quad: { 1: '--q1', 2: '--q2', 3: '--q3', 4: '--q4' }, comp: { 1: '--q1', 2: '--q3' }, cdaioe: { 1: '--q4', 2: '--q2' } };
   var GNAME = new Proxy({}, { get: function (t, k) { return (GN[state.measure] || {})[k] || String(k); } });
   function gcol(m, g) { return 'var(' + GCOL[m][g] + ')'; }
   function gshort(m, g) { return (GN[m][g] || String(g)).replace('exposure', 'exp.').replace('complementarity', 'compl.'); }
@@ -289,7 +289,7 @@
     legend('lg-age2', series.map(function (x) { return { name: x.name, color: x.color, dash: !!x.dash }; }));
     var oc = Object.keys(D.occ).map(function (t) { var o = D.occ[t]; return { t: t, o: o, v: o.change['-24'] }; })
       .filter(function (d) { return d.o.w25 >= 1000 && d.v != null; }).sort(function (a, b) { return a.v - b.v; });
-    var gk = { quad: 'q', comp: 'g', daioe: 'gd' }[state.measure];
+    var gk = { quad: 'q', comp: 'g', cdaioe: 'gd' }[state.measure];
     var row = function (d) { return '<tr><td>' + d.t + ' ' + esc(d.o.t) + '</td><td class="num">' + (d.o[gk] ? esc(gshort(state.measure, d.o[gk])) : '–') + '</td><td class="num">' + sgn(d.v) + '%</td><td class="num">' + sgn(d.o.change['999A']) + '%</td></tr>'; };
     document.querySelector('#tb-y-down tbody').innerHTML = oc.slice(0, 8).map(row).join('');
     document.querySelector('#tb-y-up tbody').innerHTML = oc.slice(-8).reverse().map(row).join('');
@@ -478,7 +478,7 @@
     document.querySelectorAll('#x-age button').forEach(function (bt) { bt.addEventListener('click', function () { xs.age = bt.dataset.v; drawCountry(); }); });
     var baseL = monthly ? 'the twelve months to ' + plabel(c.base, 'monthly') : c.base, lastL = plabel(c.last, c.freq);
     document.getElementById('x-intro').textContent = c.label + ': ' + c.source + '. Occupations: ' + c.detail + '.' + (c.note ? ' ' + c.note : '');
-    document.getElementById('x-text').textContent = 'Employees by group, ' + (monthly ? 'as twelve-month averages, ' : 'annual, ') + 'relative to ' + baseL + ' (= 100), the last ' + (monthly ? 'twelve months' : 'year') + ' before ChatGPT. Groups use the paper\'s cut-offs (the occupation medians of 2024 DAIOE and task complementarity), so the same scores fall in the same group as on the Norway tab.';
+    document.getElementById('x-text').textContent = 'Employees by group, ' + (monthly ? 'as twelve-month averages, ' : 'annual, ') + 'relative to ' + baseL + ' (= 100), the last ' + (monthly ? 'twelve months' : 'year') + ' before ChatGPT. Groups use the same cut-offs as for Norway (occupation medians of 2024 DAIOE and complementarity for the quadrants, of 2024 C-DAIOE for the exposure-only split), so the same scores fall in the same group as on the Norway tab.';
     document.getElementById('x-gtext').textContent = 'Average annual growth before (' + plabel(c.pre_from, c.freq) + ' to ' + plabel(c.base, c.freq) + ') and after (' + plabel(c.base, c.freq) + ' to ' + lastL + ')' + (monthly ? ', between twelve-month averages.' : '.') + (xs.c === 'SE' ? ' The pre-period starts in 2019 because the register series changes definition before that.' : '') + (xs.c === 'EU' ? ' The EU Labour Force Survey was redesigned in 2021, inside the pre-period.' : '');
     var gs = b.groups[xs.measure], al = b.all[xs.age], g1 = b.groups.quad[0].emp.all, alA = b.all.all;
     var gap = (g1.post - g1.pre) - (alA.post - alA.pre);
@@ -577,7 +577,7 @@
       if (!r.young) return '<tr><td>' + CNAME[r.key] + '</td><td colspan="' + (NG + 1) + '" class="muted">no age split at this level</td></tr>';
       return '<tr><td>' + CNAME[r.key] + '</td>' + r.young.map(function (x) { return '<td class="num cell" style="' + heat(x, r.yall) + '">' + sgn(x == null ? null : x - r.yall) + '</td>'; }).join('') + '<td class="num">' + sgn(r.yall) + '%</td></tr>';
     }).join('');
-    document.getElementById('cmp-cut').textContent = 'Cut-offs, as in the paper: DAIOE ' + CT.cutoffs.daioe.toFixed(2) + ' (occupation median, 2024, all applications) and task complementarity ' + CT.cutoffs.comp.toFixed(3) + ' (occupation median).';
+    document.getElementById('cmp-cut').textContent = 'Cut-offs (occupation medians, 2024): quadrants as in the paper, DAIOE ' + CT.cutoffs.daioe.toFixed(2) + ' (all applications) and task complementarity ' + CT.cutoffs.comp.toFixed(3) + '; exposure-only split, C-DAIOE ' + CT.cutoffs.cdaioe.toFixed(2) + '.';
   }
   var TABS = ['EXP', 'NO', 'SE', 'EU', 'US', 'CMP'], TLAB = { EXP: 'Exposure explorer', NO: 'Norway', SE: 'Sweden', EU: 'European Union', US: 'United States', CMP: 'Compare countries' }, curTab = 'EXP';
   function showTab(k) {
