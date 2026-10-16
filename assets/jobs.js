@@ -3,11 +3,14 @@
   'use strict';
   if (!document.getElementById('ch-quint')) return;
   var NS = 'http://www.w3.org/2000/svg';
-  var J, S, SC = {}, state = { measure: 'comp', age: '0-39', from: '2019K1', age2: '-24', skv: 'post', ska: '999D', skt: 'abilities', skSort: 'diff', skDir: 1 };
+  var J, S, SC = {}, state = { measure: 'quad', age: '0-39', from: '2019K1', age2: '-24', skv: 'post', ska: '999D', skt: 'abilities', skSort: 'diff', skDir: 1 };
   var QNAME = { 1: 'High exposure, low complementarity', 2: 'High exposure, high complementarity', 3: 'Low exposure, high complementarity', 4: 'Low exposure, low complementarity' };
-  var GN = { comp: { 1: '1 Lowest complementarity', 5: '5 Highest complementarity' }, daioe: { 1: '1 Least exposed', 5: '5 Most exposed' } };
+  /* Groups follow the paper: high/low relative to the unweighted occupation medians of 2024 DAIOE and task complementarity. */
+  var GN = { quad: QNAME, comp: { 1: 'Low complementarity', 2: 'High complementarity' }, daioe: { 1: 'Low exposure', 2: 'High exposure' } };
+  var GCOL = { quad: { 1: '--q1', 2: '--q2', 3: '--q3', 4: '--q4' }, comp: { 1: '--q1', 2: '--q3' }, daioe: { 1: '--q4', 2: '--q2' } };
   var GNAME = new Proxy({}, { get: function (t, k) { return (GN[state.measure] || {})[k] || String(k); } });
-  var MNAME = { comp: 'complementarity', daioe: 'DAIOE' };
+  function gcol(m, g) { return 'var(' + GCOL[m][g] + ')'; }
+  function gshort(m, g) { return (GN[m][g] || String(g)).replace('exposure', 'exp.').replace('complementarity', 'compl.'); }
 
   function el(name, attrs, parent, style) {
     var e = document.createElementNS(NS, name);
@@ -141,21 +144,21 @@
   function drawQuint() {
     var gs = J.groups[state.measure], age = state.age;
     var series = gs.map(function (g) {
-      return { name: GNAME[g.group], short: GNAME[g.group], color: 'var(--s' + g.group + ')', values: sliceQ(g.emp[age].ma4), width: 2.2 };
+      return { name: GNAME[g.group], short: gshort(state.measure, g.group), color: gcol(state.measure, g.group), values: sliceQ(g.emp[age].ma4), width: 2.2 };
     });
     series.push({ name: 'All occupations', short: 'All', color: 'var(--ink-2)', dash: '6 4', width: 1.6, values: sliceQ(J.all.emp[age].ma4) });
     var ageL = J.ages.filter(function (a) { return a.code === age; })[0].label.toLowerCase();
     chartQuarters(document.getElementById('ch-quint'), series, 'Employees, ' + ageL + ', four-quarter average, year to 2022 Q3 = 100');
-    legend('lg-quint', series.map(function (s) { return { name: s.name.replace(/^(\d)$/, 'Group $1') + (s.name === 'All occupations' || state.measure === 'comp' ? '' : ' (' + MNAME[state.measure] + ')'), color: s.color, dash: !!s.dash }; }));
+    legend('lg-quint', series.map(function (s) { return { name: s.name, color: s.color, dash: !!s.dash }; }));
   }
 
   function drawDumb() {
     var host = document.getElementById('ch-dumb'), age = state.age, gs = J.groups[state.measure];
-    var rows = gs.map(function (g) { return { name: GNAME[g.group], n: g.n_occ, pre: g.emp[age].growth_pre, post: g.emp[age].growth_post, color: 'var(--s' + g.group + ')' }; });
+    var rows = gs.map(function (g) { return { name: GNAME[g.group], n: g.n_occ, pre: g.emp[age].growth_pre, post: g.emp[age].growth_post, color: gcol(state.measure, g.group) }; });
     var al = { name: 'All occupations', n: J.n_matched, pre: J.all.emp[age].growth_pre, post: J.all.emp[age].growth_post, color: 'var(--ink-3)' };
     rows.push(al);
     host.innerHTML = '';
-    var W = 900, rh = 34, M = { t: 10, r: 30, b: 34, l: 205 }, H = M.t + M.b + rows.length * rh;
+    var W = 900, rh = 34, M = { t: 10, r: 30, b: 34, l: 250 }, H = M.t + M.b + rows.length * rh;
     var vals = []; rows.forEach(function (r) { vals.push(r.pre, r.post); }); vals.push(0);
     var x0 = Math.min.apply(null, vals), x1 = Math.max.apply(null, vals), p = (x1 - x0) * 0.08; x0 -= p; x1 += p;
     var sx = function (v) { return M.l + (v - x0) / (x1 - x0) * (W - M.l - M.r); };
@@ -192,22 +195,12 @@
     }).join('');
   }
 
-  function drawQuad() {
-    var age = state.age;
-    var series = J.quadrants.map(function (q) { return { name: QNAME[q.quadrant], short: QNAME[q.quadrant].replace('exposure', 'exp.').replace('complementarity', 'compl.'), color: 'var(--q' + q.quadrant + ')', values: sliceQ(q.emp[age].ma4), width: 2.2 }; });
-    series.push({ name: 'All occupations', short: 'All', color: 'var(--ink-2)', dash: '6 4', width: 1.6, values: sliceQ(J.all.emp[age].ma4) });
-    var ageL = J.ages.filter(function (a) { return a.code === age; })[0].label.toLowerCase();
-    var o = document.getElementById('ch-quad');
-    chartQuarters(o, series, 'Employees, ' + ageL + ', four-quarter average, year to 2022 Q3 = 100');
-    legend('lg-quad', series.map(function (s) { return { name: s.name, color: s.color, dash: !!s.dash }; }));
-  }
-
   function drawWage() {
     var gs = J.groups[state.measure];
-    var series = gs.map(function (g) { return { name: GNAME[g.group], color: 'var(--s' + g.group + ')', values: sliceQ(g.wage.ma4), width: 2 }; });
+    var series = gs.map(function (g) { return { name: GNAME[g.group], short: gshort(state.measure, g.group), color: gcol(state.measure, g.group), values: sliceQ(g.wage.ma4), width: 2 }; });
     series.push({ name: 'All occupations', short: 'All', color: 'var(--ink-2)', dash: '6 4', width: 1.6, values: sliceQ(J.all.wage.ma4) });
     chartQuarters(document.getElementById('ch-wage'), series, 'Median monthly earnings, four-quarter average, year to 2022 Q3 = 100');
-    legend('lg-wage', series.map(function (s) { return { name: s.name.replace(/^(\d)$/, 'Group $1') + (s.name === 'All occupations' || state.measure === 'comp' ? '' : ' (' + MNAME[state.measure] + ')'), color: s.color, dash: !!s.dash }; }));
+    legend('lg-wage', series.map(function (s) { return { name: s.name, color: s.color, dash: !!s.dash }; }));
   }
 
   function drawYears() {
@@ -256,12 +249,12 @@
   }
 
   function drawStats() {
-    var last = J.last_quarter, g5 = J.groups.comp[0].emp['0-39'], al = J.all.emp['0-39'];
+    var last = J.last_quarter, g5 = J.groups.quad[0].emp['0-39'], al = J.all.emp['0-39'];
     document.getElementById('st-last').textContent = ql(last);
     document.getElementById('st-cov').textContent = Math.round(100 * J.coverage) + '%';
     var gap = (g5.growth_post - g5.growth_pre) - (al.growth_post - al.growth_pre);
     document.getElementById('st-gap').textContent = sgn(gap) + ' pp';
-    document.getElementById('st-gap-l').textContent = 'Change in annual employment growth after ChatGPT, under 40: lowest-complementarity fifth relative to all occupations';
+    document.getElementById('st-gap-l').textContent = 'Change in annual employment growth after ChatGPT, under 40: high exposure, low complementarity relative to all occupations';
     var y = J.by_year, i = y.years.indexOf(J.frontier_year);
     document.getElementById('st-exp').textContent = y.cdaioe[i].toFixed(1);
     document.getElementById('st-exp-l').textContent = 'Employment-weighted C-DAIOE in ' + J.frontier_year + ' (' + y.years[i - 1] + ': ' + y.cdaioe[i - 1].toFixed(1) + ')';
@@ -276,7 +269,7 @@
   }
   function drawAgeDetail() {
     var D = J.age_detail, gs = D.groups[state.measure], ages = D.ages;
-    var th = '<tr><th>Group (' + (state.measure === 'comp' ? 'complementarity' : 'DAIOE') + ')</th><th class="num">Occupations</th>' + ages.map(function (a) { return '<th class="num">' + esc(a.label) + '</th>'; }).join('') + '</tr>';
+    var th = '<tr><th>Group</th><th class="num">Occupations</th>' + ages.map(function (a) { return '<th class="num">' + esc(a.label) + '</th>'; }).join('') + '</tr>';
     document.querySelector('#tb-age thead').innerHTML = th;
     var rows = gs.map(function (g) {
       return '<tr><td>' + GNAME[g.group] + '</td><td class="num">' + g.n_occ + '</td>' + ages.map(function (a) {
@@ -287,17 +280,17 @@
     rows.push('<tr><td><b>All occupations</b></td><td class="num">' + Object.keys(D.occ).length + '</td>' + ages.map(function (a) { return '<td class="num"><b>' + sgn(D.all[a.code].change) + '%</b></td>'; }).join('') + '</tr>');
     document.querySelector('#tb-age tbody').innerHTML = rows.join('');
     var qs = D.quarters.slice(3), age = state.age2, lab = ages.filter(function (a) { return a.code === age; })[0].label;
-    var series = gs.map(function (g) { return { name: GNAME[g.group], color: 'var(--s' + g.group + ')', values: g.emp[age].ma4.slice(3), width: 2.2 }; });
+    var series = gs.map(function (g) { return { name: GNAME[g.group], short: gshort(state.measure, g.group), color: gcol(state.measure, g.group), values: g.emp[age].ma4.slice(3), width: 2.2 }; });
     series.push({ name: 'All occupations', short: 'All', color: 'var(--ink-2)', dash: '6 4', width: 1.6, values: D.all[age].ma4.slice(3) });
     lineChart(document.getElementById('ch-age2'), {
       x: qs, series: series, base: 100, xtick: function (l) { return l.slice(4) === 'K1' ? l.slice(0, 4) : null; }, xfmt: ql,
       ytitle: 'Employees, ' + lab.toLowerCase() + ', four-quarter average, year to 2022 Q3 = 100', marker: 0, markerFrac: markerFrac(qs), markerText: 'ChatGPT', height: 340
     });
-    legend('lg-age2', series.map(function (x) { return { name: x.name.replace(/^(\d)$/, 'Group $1') + (x.name === 'All occupations' ? '' : ' (two-digit' + (state.measure === 'comp' ? '' : ', ' + MNAME[state.measure]) + ')'), color: x.color, dash: !!x.dash }; }));
+    legend('lg-age2', series.map(function (x) { return { name: x.name, color: x.color, dash: !!x.dash }; }));
     var oc = Object.keys(D.occ).map(function (t) { var o = D.occ[t]; return { t: t, o: o, v: o.change['-24'] }; })
       .filter(function (d) { return d.o.w25 >= 1000 && d.v != null; }).sort(function (a, b) { return a.v - b.v; });
-    var gk = state.measure === 'comp' ? 'g' : 'gd';
-    var row = function (d) { return '<tr><td>' + d.t + ' ' + esc(d.o.t) + '</td><td class="num">' + (d.o[gk] || '–') + ' of 5</td><td class="num">' + sgn(d.v) + '%</td><td class="num">' + sgn(d.o.change['999A']) + '%</td></tr>'; };
+    var gk = { quad: 'q', comp: 'g', daioe: 'gd' }[state.measure];
+    var row = function (d) { return '<tr><td>' + d.t + ' ' + esc(d.o.t) + '</td><td class="num">' + (d.o[gk] ? esc(gshort(state.measure, d.o[gk])) : '–') + '</td><td class="num">' + sgn(d.v) + '%</td><td class="num">' + sgn(d.o.change['999A']) + '%</td></tr>'; };
     document.querySelector('#tb-y-down tbody').innerHTML = oc.slice(0, 8).map(row).join('');
     document.querySelector('#tb-y-up tbody').innerHTML = oc.slice(-8).reverse().map(row).join('');
   }
@@ -388,11 +381,11 @@
     var sc = function (k) { return [2023, 2024, 2025, 2026].map(function (y) { return f1(s[k][yi(y)]); }).join(' · '); };
     out.className = '';
     out.innerHTML = '<h3>' + code + ' ' + esc(o.t) + '</h3><div class="occ-card"><dl class="kv">' +
-      '<dt>Group (fifths)</dt><dd>complementarity ' + o.g + ' of 5 · DAIOE ' + o.gd + ' of 5</dd>' +
-      '<dt>Quadrant</dt><dd>' + QNAME[o.q] + '</dd>' +
+      '<dt>Group</dt><dd>' + (QNAME[o.q] || '–') + '</dd>' +
       '<dt>DAIOE 2023–26</dt><dd>' + sc('daioe') + '</dd>' +
       '<dt>C-DAIOE 2023–26</dt><dd>' + sc('cdaioe') + '</dd>' +
       '<dt>Complementarity</dt><dd>' + s.comp.toFixed(3) + ' (median ' + J.medians.comp.toFixed(3) + ')</dd>' +
+      '<dt>DAIOE 2024</dt><dd>' + f1(s.daioe[yi(2024)]) + ' (median ' + J.medians.daioe.toFixed(1) + ')</dd>' +
       '<dt>Employees ' + ql(J.last_quarter) + '</dt><dd>' + nfmt(o.e[li]) + '</dd>' +
       '<dt>Since 2022 Q3</dt><dd>all ages ' + pct(e0, e1) + ', under 40 ' + pct(y0, y1) + ' (four-quarter averages)</dd>' +
       '<dt>Median monthly earnings</dt><dd>NOK ' + nfmt(o.w[li]) + ' (' + pct(o.w[bi], o.w[li]) + ' since 2022 Q3)</dd>' +
@@ -441,7 +434,7 @@
     });
   }
   /* ---------- other countries (data/countries.json) ---------- */
-  var CT, xs = { c: 'SE', measure: 'comp', age: 'all', geo: 'EU27_2020' }, cs = { measure: 'comp', v: 'diff' };
+  var CT, xs = { c: 'SE', measure: 'quad', age: 'all', geo: 'EU27_2020' }, cs = { measure: 'quad', v: 'diff' };
   var CCOL = { NO: 'var(--q2)', SE: 'var(--q3)', EU: 'var(--q1)', US: 'var(--ink-2)' };
   var CNAME = { NO: 'Norway', SE: 'Sweden', EU: 'European Union', US: 'United States' };
   function gname(m, g) { return (GN[m] || {})[g] || String(g); }
@@ -452,7 +445,7 @@
   function cblock() { var c = CT.countries[xs.c]; return xs.c === 'EU' ? c.geos[xs.geo] : c; }
   function dumbbellChart(host, rows, al) {
     host.innerHTML = '';
-    var W = 900, rh = 34, M = { t: 10, r: 30, b: 34, l: 205 }, H = M.t + M.b + rows.length * rh;
+    var W = 900, rh = 34, M = { t: 10, r: 30, b: 34, l: 250 }, H = M.t + M.b + rows.length * rh;
     var vals = [0]; rows.forEach(function (r) { if (r.pre != null) vals.push(r.pre); if (r.post != null) vals.push(r.post); });
     var x0 = Math.min.apply(null, vals), x1 = Math.max.apply(null, vals), p = (x1 - x0) * 0.08 || 1; x0 -= p; x1 += p;
     var sx = function (v) { return M.l + (v - x0) / (x1 - x0) * (W - M.l - M.r); };
@@ -485,18 +478,18 @@
     document.querySelectorAll('#x-age button').forEach(function (bt) { bt.addEventListener('click', function () { xs.age = bt.dataset.v; drawCountry(); }); });
     var baseL = monthly ? 'the twelve months to ' + plabel(c.base, 'monthly') : c.base, lastL = plabel(c.last, c.freq);
     document.getElementById('x-intro').textContent = c.label + ': ' + c.source + '. Occupations: ' + c.detail + '.' + (c.note ? ' ' + c.note : '');
-    document.getElementById('x-text').textContent = 'Employees by group, ' + (monthly ? 'as twelve-month averages, ' : 'annual, ') + 'relative to ' + baseL + ' (= 100), the last ' + (monthly ? 'twelve months' : 'year') + ' before ChatGPT. Groups use the Norwegian cut-offs, so the same scores fall in the same group as on the Norway tab.';
+    document.getElementById('x-text').textContent = 'Employees by group, ' + (monthly ? 'as twelve-month averages, ' : 'annual, ') + 'relative to ' + baseL + ' (= 100), the last ' + (monthly ? 'twelve months' : 'year') + ' before ChatGPT. Groups use the paper\'s cut-offs (the occupation medians of 2024 DAIOE and task complementarity), so the same scores fall in the same group as on the Norway tab.';
     document.getElementById('x-gtext').textContent = 'Average annual growth before (' + plabel(c.pre_from, c.freq) + ' to ' + plabel(c.base, c.freq) + ') and after (' + plabel(c.base, c.freq) + ' to ' + lastL + ')' + (monthly ? ', between twelve-month averages.' : '.') + (xs.c === 'SE' ? ' The pre-period starts in 2019 because the register series changes definition before that.' : '') + (xs.c === 'EU' ? ' The EU Labour Force Survey was redesigned in 2021, inside the pre-period.' : '');
-    var gs = b.groups[xs.measure], al = b.all[xs.age], g1 = gs[0].emp.all, alA = b.all.all;
+    var gs = b.groups[xs.measure], al = b.all[xs.age], g1 = b.groups.quad[0].emp.all, alA = b.all.all;
     var gap = (g1.post - g1.pre) - (alA.post - alA.pre);
     document.getElementById('x-stats').innerHTML =
       '<div class="stat"><div class="v">' + esc(lastL) + '</div><div class="l">Latest ' + (monthly ? 'month' : 'year') + ' in the data</div></div>' +
       '<div class="stat"><div class="v">' + (b.coverage == null ? '–' : Math.round(100 * b.coverage) + '%') + '</div><div class="l">Share of ' + esc(c.unit.replace(' (thousands)', '')) + ' in scored occupations</div></div>' +
-      '<div class="stat"><div class="v">' + sgn(gap) + ' pp</div><div class="l">Change in annual employment growth after ChatGPT, lowest-complementarity group relative to all occupations</div></div>' +
+      '<div class="stat"><div class="v">' + sgn(gap) + ' pp</div><div class="l">Change in annual employment growth after ChatGPT, high exposure, low complementarity relative to all occupations</div></div>' +
       '<div class="stat"><div class="v">' + esc(c.detail.split(' ')[0]) + '</div><div class="l">Occupation detail (' + esc(c.freq) + ' data)</div></div>';
     document.getElementById('x-stamp').textContent = 'Data rebuilt ' + CT.built + '.' + (c.missing && c.missing.length ? ' Missing months: ' + c.missing.map(function (p) { return plabel(p, 'monthly'); }).join(', ') + '.' : '');
     var P = c.periods, start = w - 1, qs = P.slice(start);
-    var series = gs.map(function (g) { return { name: gname(xs.measure, g.group), color: 'var(--s' + g.group + ')', values: g.emp[xs.age].index.slice(start), width: 2.2 }; });
+    var series = gs.map(function (g) { return { name: gname(xs.measure, g.group), short: gshort(xs.measure, g.group), color: gcol(xs.measure, g.group), values: g.emp[xs.age].index.slice(start), width: 2.2 }; });
     series.push({ name: 'All occupations', short: 'All', color: 'var(--ink-2)', dash: '6 4', width: 1.6, values: al.index.slice(start) });
     var bi = qs.indexOf(c.base), frac = (bi + (monthly ? 1 : 0.92)) / (qs.length - 1);
     var ageL = c.ages.filter(function (a) { return a.code === xs.age; })[0].label.toLowerCase();
@@ -505,7 +498,7 @@
       xtick: monthly ? function (p) { return p.slice(5) === '01' ? p.slice(0, 4) : null; } : function (p) { return p; },
       ytitle: 'Employees, ' + ageL + ', ' + (monthly ? 'twelve-month average, ' : '') + baseL + ' = 100', marker: 0, markerFrac: frac, markerText: 'ChatGPT'
     });
-    legend('x-legend', series.map(function (s) { return { name: s.name.replace(/^(\d)$/, 'Group $1'), color: s.color, dash: !!s.dash }; }));
+    legend('x-legend', series.map(function (s) { return { name: s.name, color: s.color, dash: !!s.dash }; }));
     var rows = gs.map(function (g) { return { name: gname(xs.measure, g.group), n: g.n_occ, pre: g.emp[xs.age].pre, post: g.emp[xs.age].post }; });
     var arow = { name: 'All occupations', isAll: true, n: gs.reduce(function (s, g) { return s + g.n_occ; }, 0), pre: al.pre, post: al.post };
     dumbbellChart(document.getElementById('x-dumb'), rows.concat([arow]), arow);
@@ -544,8 +537,9 @@
     var m = cs.measure, rows = cmpRows(m), v = cs.v;
     var val = function (r, i) { var g = r.groups[i]; if (!g || g.post == null || g.pre == null) return null; return v === 'diff' ? (g.post - g.pre) - (r.all.post - r.all.pre) : g.post - r.all.post; };
     var host = document.getElementById('cmp-chart'); host.innerHTML = '';
-    var W = 900, rh = 46, M = { t: 14, r: 30, b: 40, l: 205 }, H = M.t + M.b + 5 * rh;
-    var vals = [0]; rows.forEach(function (r) { for (var i = 0; i < 5; i++) { var x = val(r, i); if (x != null) vals.push(x); } });
+    var NG = Object.keys(GN[m]).length, GI = []; for (var gi = 0; gi < NG; gi++) GI.push(gi);
+    var W = 900, rh = 46, M = { t: 14, r: 30, b: 40, l: 250 }, H = M.t + M.b + NG * rh;
+    var vals = [0]; rows.forEach(function (r) { for (var i = 0; i < NG; i++) { var x = val(r, i); if (x != null) vals.push(x); } });
     var x0 = Math.min.apply(null, vals), x1 = Math.max.apply(null, vals), p = (x1 - x0) * 0.1 || 1; x0 -= p; x1 += p;
     var sx = function (x) { return M.l + (x - x0) / (x1 - x0) * (W - M.l - M.r); };
     var svg = el('svg', { viewBox: '0 0 ' + W + ' ' + H, role: 'img', 'aria-label': 'Change in employment growth by group and country' }); host.appendChild(svg);
@@ -556,7 +550,7 @@
     el('line', { x1: sx(0), x2: sx(0), y1: M.t, y2: H - M.b }, svg, 'stroke:var(--ink-3)');
     var xt = el('text', { 'class': 'axis-title', x: (M.l + W - M.r) / 2, y: H - 6, 'text-anchor': 'middle' }, svg);
     xt.textContent = v === 'diff' ? 'Change in annual growth after ChatGPT, relative to all occupations (pp)' : 'Annual growth after ChatGPT minus all occupations (pp)';
-    for (var i = 0; i < 5; i++) {
+    for (var i = 0; i < NG; i++) {
       var y = M.t + rh * i + rh / 2;
       var lt = el('text', { x: M.l - 10, y: y + 4, 'text-anchor': 'end' }, svg, 'fill:var(--ink-2);font-size:12px'); lt.textContent = gname(m, i + 1);
       rows.forEach(function (r, k) {
@@ -574,31 +568,47 @@
       });
     }
     legend('cmp-legend', rows.map(function (r) { return { name: CNAME[r.key], color: CCOL[r.key] }; }));
-    document.querySelector('#cmp-table thead').innerHTML = '<tr><th>Country</th>' + [1, 2, 3, 4, 5].map(function (g) { return '<th class="num">' + esc(gname(m, g)) + '</th>'; }).join('') + '</tr>';
+    document.querySelector('#cmp-table thead').innerHTML = '<tr><th>Country</th>' + GI.map(function (i) { return '<th class="num" title="' + esc(gname(m, i + 1)) + '">' + esc(gshort(m, i + 1)) + '</th>'; }).join('') + '</tr>';
     document.querySelector('#cmp-table tbody').innerHTML = rows.map(function (r) {
-      return '<tr><td>' + CNAME[r.key] + '</td>' + [0, 1, 2, 3, 4].map(function (i) { return '<td class="num">' + sgn(val(r, i), 2) + '</td>'; }).join('') + '</tr>';
+      return '<tr><td>' + CNAME[r.key] + '</td>' + GI.map(function (i) { return '<td class="num">' + sgn(val(r, i), 2) + '</td>'; }).join('') + '</tr>';
     }).join('');
-    document.querySelector('#cmp-young thead').innerHTML = '<tr><th>Country</th>' + [1, 2, 3, 4, 5].map(function (g) { return '<th class="num">' + esc(gname(m, g)) + '</th>'; }).join('') + '<th class="num">All, % change</th></tr>';
+    document.querySelector('#cmp-young thead').innerHTML = '<tr><th>Country</th>' + GI.map(function (i) { return '<th class="num" title="' + esc(gname(m, i + 1)) + '">' + esc(gshort(m, i + 1)) + '</th>'; }).join('') + '<th class="num">All, % change</th></tr>';
     document.querySelector('#cmp-young tbody').innerHTML = rows.map(function (r) {
-      if (!r.young) return '<tr><td>' + CNAME[r.key] + '</td><td colspan="6" class="muted">no age split at this level</td></tr>';
+      if (!r.young) return '<tr><td>' + CNAME[r.key] + '</td><td colspan="' + (NG + 1) + '" class="muted">no age split at this level</td></tr>';
       return '<tr><td>' + CNAME[r.key] + '</td>' + r.young.map(function (x) { return '<td class="num cell" style="' + heat(x, r.yall) + '">' + sgn(x == null ? null : x - r.yall) + '</td>'; }).join('') + '<td class="num">' + sgn(r.yall) + '%</td></tr>';
     }).join('');
-    document.getElementById('cmp-cut').textContent = 'Cut-offs (highest score in each of the first four Norwegian groups): complementarity ' + CT.cutoffs.comp.join(', ') + '; DAIOE ' + CT.cutoffs.daioe.join(', ') + '.';
+    document.getElementById('cmp-cut').textContent = 'Cut-offs, as in the paper: DAIOE ' + CT.cutoffs.daioe.toFixed(2) + ' (occupation median, 2024, all applications) and task complementarity ' + CT.cutoffs.comp.toFixed(3) + ' (occupation median).';
   }
+  var TABS = ['EXP', 'NO', 'SE', 'EU', 'US', 'CMP'], TLAB = { EXP: 'Exposure explorer', NO: 'Norway', SE: 'Sweden', EU: 'European Union', US: 'United States', CMP: 'Compare countries' }, curTab = 'EXP';
   function showTab(k) {
+    if (TABS.indexOf(k) < 0) k = 'EXP';
+    curTab = k;
     document.querySelectorAll('#ctabs button').forEach(function (b) { b.setAttribute('aria-selected', b.dataset.c === k ? 'true' : 'false'); });
+    document.getElementById('tab-EXP').hidden = k !== 'EXP';
     document.getElementById('tab-NO').hidden = k !== 'NO';
     document.getElementById('tab-X').hidden = !(k === 'SE' || k === 'EU' || k === 'US');
     document.getElementById('tab-CMP').hidden = k !== 'CMP';
+    var i = TABS.indexOf(k), nav = document.getElementById('tabnav');
+    if (nav) nav.innerHTML = (i > 0 ? '<a href="#' + TABS[i - 1].toLowerCase() + '" data-go="' + TABS[i - 1] + '">← ' + TLAB[TABS[i - 1]] + '</a>' : '<span></span>') +
+                             (i < TABS.length - 1 ? '<a href="#' + TABS[i + 1].toLowerCase() + '" data-go="' + TABS[i + 1] + '">' + TLAB[TABS[i + 1]] + ' →</a>' : '<span></span>');
     if (!CT) return;
     if (k === 'SE' || k === 'EU' || k === 'US') { xs.c = k; drawCountry(); }
     if (k === 'CMP') drawCompare();
   }
+  function goTab(k, scroll) {
+    showTab(k);
+    try { history.replaceState(null, '', '#' + curTab.toLowerCase()); } catch (e) {}
+    if (scroll) document.getElementById('ctabs').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  function hashTab() { var h = (location.hash || '').slice(1).toUpperCase(); return TABS.indexOf(h) >= 0 ? h : null; }
+  function wireTabs() {
+    document.querySelectorAll('#ctabs button').forEach(function (b) { b.type = 'button'; b.addEventListener('click', function () { goTab(b.dataset.c); }); });
+    var nav = document.getElementById('tabnav');
+    if (nav) nav.addEventListener('click', function (ev) { var a = ev.target.closest('[data-go]'); if (!a) return; ev.preventDefault(); goTab(a.dataset.go, true); });
+    window.addEventListener('hashchange', function () { var h = hashTab(); if (h && h !== curTab) showTab(h); });
+    showTab(hashTab() || 'EXP');
+  }
   function wireCountries() {
-    document.querySelectorAll('#ctabs button').forEach(function (b) {
-      b.type = 'button';
-      b.addEventListener('click', function () { showTab(b.dataset.c); try { history.replaceState(null, '', '#' + b.dataset.c.toLowerCase()); } catch (e) {} });
-    });
     var segs = [['x-measure', xs, 'measure', drawCountry], ['cmp-measure', cs, 'measure', drawCompare], ['cmp-v', cs, 'v', drawCompare]];
     segs.forEach(function (sg) {
       var box = document.getElementById(sg[0]);
@@ -610,12 +620,12 @@
     var geo = document.getElementById('x-geo'), g = CT.countries.EU ? CT.countries.EU.geos : {};
     geo.innerHTML = Object.keys(g).map(function (k) { return '<option value="' + k + '">' + esc(g[k].label) + '</option>'; }).join('');
     geo.addEventListener('change', function () { xs.geo = geo.value; drawCountry(); });
-    var h = (location.hash || '').slice(1).toUpperCase();
-    if (['SE', 'EU', 'US', 'CMP'].indexOf(h) >= 0) showTab(h);
+    showTab(curTab);
   }
 
-  function redraw() { drawQuint(); drawDumb(); drawAgeDetail(); drawQuad(); drawWage(); }
+  function redraw() { drawQuint(); drawDumb(); drawAgeDetail(); drawWage(); }
 
+  wireTabs();
   Promise.all([fetch('data/ai_jobs.json').then(function (r) { return r.json(); }), fetch('data/exposure_scores.json').then(function (r) { return r.json(); })])
     .then(function (res) {
       J = res[0]; S = res[1];

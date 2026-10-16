@@ -8,7 +8,7 @@
   var countEl = document.getElementById('count');
   var NS = 'http://www.w3.org/2000/svg';
   var W = 900, H = 540, M = { t: 24, r: 24, b: 54, l: 62 };
-  var data = [], med = {}, raw = null, state = { x: 'daioe', query: '', major: '', sortK: 'daioe', sortDir: -1, year: 2024 };
+  var data = [], med = {}, cut = {}, raw = null, state = { x: 'daioe', query: '', major: '', sortK: 'daioe', sortDir: -1, year: 2024 };
   var MAJOR = { '1': 'Managers', '2': 'Professionals', '3': 'Technicians and associate professionals', '4': 'Clerical support workers',
                 '5': 'Service and sales workers', '6': 'Skilled agricultural, forestry and fishery workers', '7': 'Craft and related trades workers',
                 '8': 'Plant and machine operators and assemblers', '9': 'Elementary occupations' };
@@ -20,8 +20,9 @@
     return e;
   }
   function median(a) { var s = a.slice().sort(function (x, y) { return x - y; }); var m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; }
+  /* The paper's quadrants: medians of 2024 DAIOE and of complementarity, fixed whatever year or axis is shown. */
   function quadrant(d) {
-    var hx = d[state.x] >= med[state.x], hc = d.comp >= med.comp;
+    var hx = d.d24 >= cut.daioe, hc = d.comp >= cut.comp;
     return hx ? (hc ? 2 : 1) : (hc ? 3 : 4);
   }
   var QNAME = { 1: 'High exposure, low complementarity', 2: 'High exposure, high complementarity', 3: 'Low exposure, high complementarity', 4: 'Low exposure, low complementarity' };
@@ -65,10 +66,10 @@
     var yt = el('text', { 'class': 'axis-title', x: 16, y: (M.t + H - M.b) / 2, 'text-anchor': 'middle', transform: 'rotate(-90 16 ' + ((M.t + H - M.b) / 2) + ')' }, svg); yt.textContent = 'Task complementarity →';
     // median reference lines + quadrant labels
     var ref = el('g', { 'class': 'ref' }, svg);
-    el('line', { x1: sx(med[xk]), x2: sx(med[xk]), y1: M.t, y2: H - M.b }, ref);
-    el('line', { x1: M.l, x2: W - M.r, y1: sy(med.comp), y2: sy(med.comp) }, ref);
+    if (xk === 'daioe') el('line', { x1: sx(cut.daioe), x2: sx(cut.daioe), y1: M.t, y2: H - M.b }, ref);
+    el('line', { x1: M.l, x2: W - M.r, y1: sy(cut.comp), y2: sy(cut.comp) }, ref);
     var ql = el('g', {}, svg);
-    [[W - M.r - 6, M.t + 14, 'end', 'high exposure, high complementarity'], [M.l + 6, M.t + 14, 'start', 'low exposure, high complementarity'],
+    if (xk === 'daioe') [[W - M.r - 6, M.t + 14, 'end', 'high exposure, high complementarity'], [M.l + 6, M.t + 14, 'start', 'low exposure, high complementarity'],
      [W - M.r - 6, H - M.b - 8, 'end', 'high exposure, low complementarity'], [M.l + 6, H - M.b - 8, 'start', 'low exposure, low complementarity']]
       .forEach(function (a) { var t = el('text', { 'class': 'qlabel', x: a[0], y: a[1], 'text-anchor': a[2] }, ql); t.textContent = a[3]; });
     // points
@@ -99,8 +100,9 @@
       var t = el('text', { x: sx(d[xk]) + 8, y: sy(d.comp) + 4 }, hl);
       t.textContent = d.title.length > 38 ? d.title.slice(0, 36) + '…' : d.title;
     });
-    countEl.textContent = (anyFilter ? nMatch + ' of ' : '') + data.length + ' occupations shown. Medians: DAIOE ' + med.daioe.toFixed(1) +
-                          ', C-DAIOE ' + med.cdaioe.toFixed(1) + ', complementarity ' + med.comp.toFixed(2) + '. Hover or tab to a point for details.';
+    countEl.textContent = (anyFilter ? nMatch + ' of ' : '') + data.length + ' occupations shown. Quadrants as in the paper: DAIOE 2024 median ' + cut.daioe.toFixed(2) +
+                          ', complementarity median ' + cut.comp.toFixed(3) + (state.year === 2024 ? '' : '. Medians in ' + state.year + ': DAIOE ' + med.daioe.toFixed(1)) +
+                          (xk === 'cdaioe' ? (state.year === 2024 ? '. C-DAIOE median ' : ', C-DAIOE ') + med.cdaioe.toFixed(1) : '') + '. Hover or tab to a point for details.';
     drawTable();
   }
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
@@ -138,9 +140,11 @@
   var qs = new URLSearchParams(location.search).get('q'); if (qs) { q.value = qs; state.query = qs.trim().toLowerCase(); }
 
   function load() {
-    var yi = raw.years.indexOf(state.year), ci = {}; raw.cols.forEach(function (c, i) { ci[c] = i; });
-    data = raw.rows.map(function (r) { return { isco: String(r[ci.isco]), title: r[ci.title], daioe: r[ci.daioe][yi], cdaioe: r[ci.cdaioe][yi], comp: +r[ci.comp] }; })
-                   .filter(function (d) { return d.daioe != null && d.cdaioe != null && isFinite(d.comp); });
+    var yi = raw.years.indexOf(state.year), y24 = raw.years.indexOf(2024), ci = {}; raw.cols.forEach(function (c, i) { ci[c] = i; });
+    var all = raw.rows.filter(function (r) { return r[ci.daioe][y24] != null && isFinite(+r[ci.comp]); });
+    cut = { daioe: median(all.map(function (r) { return r[ci.daioe][y24]; })), comp: median(all.map(function (r) { return +r[ci.comp]; })) };
+    data = raw.rows.map(function (r) { return { isco: String(r[ci.isco]), title: r[ci.title], daioe: r[ci.daioe][yi], cdaioe: r[ci.cdaioe][yi], d24: r[ci.daioe][y24], comp: +r[ci.comp] }; })
+                   .filter(function (d) { return d.daioe != null && d.cdaioe != null && d.d24 != null && isFinite(d.comp); });
     med = { daioe: median(data.map(function (d) { return d.daioe; })), cdaioe: median(data.map(function (d) { return d.cdaioe; })),
             comp: median(data.map(function (d) { return d.comp; })) };
     draw();
